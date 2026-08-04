@@ -21,7 +21,7 @@ There is no package manager, build process, framework, remote font, or generated
         └── Artur_Silveira_Resume_Automattic.pdf
 ```
 
-The media areas currently use CSS-rendered fallback frames. They display the expected path but do not request absent files, so the initial portfolio has no media-related 404s.
+The portfolio includes optimized copies of the supplied project screenshots, design work, videos and poster frames. Original source files remain outside the repository and are never modified by the site.
 
 ## Run locally
 
@@ -88,54 +88,56 @@ The accessible navigation toggle saves the selection under `artur-portfolio-them
 
 When changing colors, verify text, muted text, controls, focus indicators and borders in both themes. Keep red as the primary action color and purple as a secondary accent.
 
-## Add or replace project screenshots
+## Media source and output mapping
 
-Project frames are already connected to the accessible media viewer through `data-*` attributes. To activate an image:
+The read-only source library used for this release is:
 
-1. Add the WebP or AVIF file at the exact manifest path.
-2. Find the matching element in `index.html` by its `data-media-src` value.
-3. Change `data-media-ready="false"` to `data-media-ready="true"`.
+```text
+C:\Users\User\Desktop\Portfolio
+```
 
-JavaScript then adds a lazy-loaded image to the existing editorial frame and opens the same file in the viewer. The frame dimensions are fixed, preventing layout shifts. Keep the supplied descriptive `data-media-alt` text accurate; edit it if the final screenshot content differs.
+The integration copies and optimizes media into `assets/`; it does not rename, delete, overwrite or modify anything in the Desktop source folders.
 
-For art-directed sources, replace the generated inline image with a `<picture>` element using AVIF and WebP sources. Preserve the trigger’s accessible name and viewer data attributes.
+| Source file | Repository output |
+| --- | --- |
+| `Rodociclo\HomepageAntigaRDC.png` | `assets/images/rodociclo-before.webp` |
+| `Rodociclo\HomepageNovaRDC.png` | `assets/images/rodociclo-after.webp` |
+| `Rodociclo\RDCMobile.jpeg` | `assets/images/rodociclo-mobile.webp` |
+| `Bike Tech Moinhos\HomepageAntigaBTM.png` | `assets/images/biketech-before.webp` |
+| `Bike Tech Moinhos\HomepageNovaBTM.png` | `assets/images/biketech-after.webp` |
+| `Bike Tech Moinhos\BTMobile.jpeg` | `assets/images/biketech-mobile.webp` |
+| `Designs\DZ1.png` | `assets/images/design-work-01.webp` |
+| `Designs\DZ2.png` | `assets/images/design-work-02.webp` |
+| `Designs\DZ3.png` | `assets/images/design-work-03.webp` |
+| `Designs\DZ4.png` | `assets/images/design-work-04.webp` |
+| `Designs\DZ5.png` | `assets/images/design-work-05.webp` |
+| `Vídeos\AI1.mp4` | `assets/videos/ai-video-01.mp4` + `assets/images/ai-video-01-poster.webp` |
+| `Vídeos\AI2.mp4` | `assets/videos/ai-video-02.mp4` + `assets/images/ai-video-02-poster.webp` |
+| `Vídeos\AI3.mp4` | `assets/videos/ai-video-03.mp4` + `assets/images/ai-video-03-poster.webp` |
+| `Vídeos\Reel1.mp4` | `assets/videos/reel-01.mp4` + `assets/images/reel-01-poster.webp` |
+| `Vídeos\Reel2.mp4` | `assets/videos/reel-02.mp4` + `assets/images/reel-02-poster.webp` |
+| `Vídeos\Reel3.mp4` | `assets/videos/reel-03.mp4` + `assets/images/reel-03-poster.webp` |
 
-Recommended exports:
+AI1, AI2 and AI3 are visibly identified as AI-generated work. Their gallery items and viewer detail use the supplied disclosure: “Created entirely from scratch using AI tools, from concept and generation to final editing.” Reel1, Reel2 and Reel3 are presented only as edited reels, without invented campaign details.
 
-- Main desktop screenshots: 1800 × 1125 px, approximately 8:5.
-- Supporting desktop or detail screenshots: 1400–1800 px on the longest edge.
-- Mobile screenshots: 900 × 1800 px, approximately 1:2.
-- Creative gallery images: 1200–1800 px on the longest edge, preserving the intended crop.
-- Maximum image width: usually 1600–2000 px.
-- Target size: generally below 250 KB; allow slightly more only when interface detail requires it.
+## Media optimization and full-ratio viewer
 
-Export in sRGB. WebP quality around 72–82 is a good starting point. AVIF may be smaller, but inspect fine type and high-contrast edges before publishing.
+The 11 source images were exported as WebP at their full native pixel dimensions, with no crop or aspect-ratio change. Current files range from roughly 50–151 KB. For later replacements, retain sRGB, keep the longest edge near 1600–2000 px when the source supports it, and visually inspect interface text after exporting around WebP quality 78–86.
 
-## Add or replace videos
+All six videos remain vertical H.264 MP4 files with AAC audio and fast-start metadata. AI1, AI2, AI3 and Reel2 were scaled proportionally to 720 px wide and visually compressed; Reel1 and Reel3 were already 720p and were remuxed without video or audio recompression. Posters are representative WebP frames with the same vertical ratio.
 
-Video tiles use `data-media-kind="video"`. To activate one:
+Editorial tiles may crop a preview with `object-fit: cover`, but the accessible viewer always renders media with automatic width and height, bounded by `max-width`, `max-height` and `object-fit: contain`. The viewer therefore shows the complete uncropped image or video without stretching. Videos are attached only after the viewer opens, use native controls, `playsinline` and `preload="metadata"`, and never autoplay.
 
-1. Add the MP4 and its poster image at the paths listed below.
-2. Change the tile’s `data-media-ready` value to `true`.
-3. Confirm its title, category and accessible description.
+## Replace media later
 
-The gallery loads only the poster image. The MP4 source is assigned when a visitor opens the viewer. Videos use native controls, `playsinline` and `preload="metadata"`; playback never begins automatically.
+1. Preserve the output filename listed in the manifest, or update the corresponding `data-media-src` and `data-media-poster` values in `index.html`.
+2. Optimize the replacement without changing its proportions.
+3. Update `data-media-width`, `data-media-height`, `data-media-alt`, title and category values.
+4. Keep `data-media-ready="true"` only when both the referenced file and, for video, its poster exist.
+5. For AI-originated work, retain an accurate `data-media-note`; remove it for conventional edited work.
+6. Verify tile loading, the full-ratio viewer, focus return, Escape behavior and mobile overflow before publishing.
 
-Recommended video encoding:
-
-- MP4 container, H.264 video and AAC audio.
-- 720p or 1080p at the source frame rate, usually 24 or 30 fps.
-- CRF 24–28 or an equivalent visually inspected setting.
-- AAC at roughly 96–128 kbps when audio is necessary.
-- Fast-start enabled so the MP4 metadata is at the beginning.
-- Preferably below 8–12 MB per clip.
-
-Poster recommendations:
-
-- Export a WebP poster matching the video’s display ratio.
-- Use at least 1280 px on the longest edge.
-- Keep it below approximately 180 KB.
-- Choose a representative frame without embedded play controls; the interface supplies its own play affordance.
+For art-directed responsive sources, a `<picture>` element may replace the generated inline image. Preserve the trigger’s accessible name and viewer data attributes.
 
 ## Full asset manifest
 
@@ -145,33 +147,36 @@ Poster recommendations:
 assets/images/rodociclo-before.webp
 assets/images/rodociclo-after.webp
 assets/images/rodociclo-mobile.webp
-assets/images/rodociclo-detail.webp
 assets/images/biketech-before.webp
 assets/images/biketech-after.webp
 assets/images/biketech-mobile.webp
-assets/images/biketech-detail.webp
 ```
 
 ### Creative gallery images
 
 ```text
-assets/images/visual-work-01.webp
-assets/images/visual-work-02.webp
-assets/images/visual-work-03.webp
-assets/images/visual-work-04.webp
-assets/images/visual-work-05.webp
-assets/images/visual-work-06.webp
+assets/images/design-work-01.webp
+assets/images/design-work-02.webp
+assets/images/design-work-03.webp
+assets/images/design-work-04.webp
+assets/images/design-work-05.webp
 ```
 
 ### Motion work and posters
 
 ```text
-assets/videos/motion-work-01.mp4
-assets/videos/motion-work-02.mp4
-assets/videos/motion-work-03.mp4
-assets/images/motion-work-01-poster.webp
-assets/images/motion-work-02-poster.webp
-assets/images/motion-work-03-poster.webp
+assets/videos/ai-video-01.mp4
+assets/videos/ai-video-02.mp4
+assets/videos/ai-video-03.mp4
+assets/videos/reel-01.mp4
+assets/videos/reel-02.mp4
+assets/videos/reel-03.mp4
+assets/images/ai-video-01-poster.webp
+assets/images/ai-video-02-poster.webp
+assets/images/ai-video-03-poster.webp
+assets/images/reel-01-poster.webp
+assets/images/reel-02-poster.webp
+assets/images/reel-03-poster.webp
 ```
 
 ### Résumé
@@ -194,7 +199,7 @@ The media viewer takes its title, category, source path and alternative text fro
 
 Before the final public launch, Artur should confirm:
 
-- final screenshots, gallery work, video edits, poster frames, captions and alt text;
+- final public-facing titles and context for DZ1–DZ5, plus final captions and alternative text;
 - case-study specifics, particularly research methods, feedback evidence and rollout details;
 - the Rodociclo outcome wording and the current R$30,000–R$50,000 range;
 - role titles and employment dates for all three experience entries;

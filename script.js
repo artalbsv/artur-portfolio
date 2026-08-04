@@ -263,9 +263,15 @@
       const image = document.createElement('img');
       image.className = 'media-content';
       image.src = source;
-      image.alt = trigger.dataset.mediaAlt || '';
+      image.alt = trigger.hasAttribute('aria-label') ? '' : (trigger.dataset.mediaAlt || '');
       image.loading = 'lazy';
       image.decoding = 'async';
+      const mediaWidth = Number.parseInt(trigger.dataset.mediaWidth || '', 10);
+      const mediaHeight = Number.parseInt(trigger.dataset.mediaHeight || '', 10);
+      if (mediaWidth > 0 && mediaHeight > 0) {
+        image.width = mediaWidth;
+        image.height = mediaHeight;
+      }
       image.addEventListener('load', () => trigger.classList.add('has-inline-media'), { once: true });
       trigger.append(image);
     });
@@ -279,6 +285,7 @@
     const title = $('[data-viewer-title]');
     const category = $('[data-viewer-category]');
     const description = $('[data-viewer-description]');
+    const note = $('[data-viewer-note]');
     const path = $('[data-viewer-path]');
     const closeButton = $('.viewer-close', viewer);
     const inertSurfaces = [$('header.site-header'), $('main'), $('footer.site-footer')].filter(Boolean);
@@ -319,12 +326,19 @@
       const mediaCategory = trigger.dataset.mediaCategory || 'Creative work';
       const mediaPath = trigger.dataset.mediaSrc || '';
       const mediaAlt = trigger.dataset.mediaAlt || mediaTitle;
+      const mediaNote = trigger.dataset.mediaNote || '';
+      const mediaWidth = Number.parseInt(trigger.dataset.mediaWidth || '', 10);
+      const mediaHeight = Number.parseInt(trigger.dataset.mediaHeight || '', 10);
 
       returnFocus = trigger;
       clearStage();
       if (title) title.textContent = mediaTitle;
       if (category) category.textContent = mediaCategory;
       if (path) path.textContent = mediaPath;
+      if (note) {
+        note.textContent = mediaNote;
+        note.hidden = !mediaNote;
+      }
 
       if (mediaReady && mediaKind === 'video') {
         const video = document.createElement('video');
@@ -333,6 +347,10 @@
         video.playsInline = true;
         video.src = mediaPath;
         if (trigger.dataset.mediaPoster) video.poster = trigger.dataset.mediaPoster;
+        if (mediaWidth > 0 && mediaHeight > 0) {
+          video.width = mediaWidth;
+          video.height = mediaHeight;
+        }
         video.setAttribute('aria-label', mediaAlt);
         stage.append(video);
         if (description) description.textContent = 'Video preview. Playback starts only when you press play.';
@@ -342,6 +360,10 @@
         image.alt = mediaAlt;
         image.loading = 'eager';
         image.decoding = 'async';
+        if (mediaWidth > 0 && mediaHeight > 0) {
+          image.width = mediaWidth;
+          image.height = mediaHeight;
+        }
         stage.append(image);
         if (description) description.textContent = mediaAlt;
       } else {
@@ -570,7 +592,7 @@
             ease: 'none',
             scrollTrigger: { trigger: '.rodociclo-stage', start: 'top bottom', end: 'bottom top', scrub: 0.55 }
           });
-          gsap.to('.btm-before, .btm-detail', {
+          gsap.to('.btm-before', {
             yPercent: -7,
             ease: 'none',
             scrollTrigger: { trigger: '.biketech-gallery', start: 'top bottom', end: 'bottom top', scrub: 0.6 }
