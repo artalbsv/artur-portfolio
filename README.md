@@ -18,7 +18,7 @@ There is no package manager, build process, framework, remote font, or generated
     ├── videos/                        User-initiated MP4 motion work
     ├── vendor/                        Pinned GSAP core and ScrollTrigger runtime
     └── resume/
-        └── Artur_Silveira_Resume_Automattic.pdf
+        └── Artur_Silveira_Resume.pdf
 ```
 
 The portfolio includes optimized copies of the supplied project screenshots, design work, videos and poster frames. Original source files remain outside the repository and are never modified by the site.
@@ -182,7 +182,7 @@ assets/images/reel-03-poster.webp
 ### Résumé
 
 ```text
-assets/resume/Artur_Silveira_Resume_Automattic.pdf
+assets/resume/Artur_Silveira_Resume.pdf
 ```
 
 ## Update the résumé

@@ -991,6 +991,12 @@ em {
   font-family: var(--hand);
   font-size: clamp(0.8rem, 1.2vw, 1rem);
   line-height: 1.4;
+  -webkit-text-stroke: 0.35px rgba(5, 5, 5, 0.9);
+  paint-order: stroke fill;
+  text-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.95),
+    0 3px 6px rgba(0, 0, 0, 0.78),
+    0 8px 18px rgba(0, 0, 0, 0.45);
   transform: rotate(5deg);
   pointer-events: none;
 }
