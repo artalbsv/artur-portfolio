@@ -1,169 +1,207 @@
 # Artur Silveira — Portfolio
 
-A fast, responsive one-page portfolio for Artur Silveira de Albuquerque, Product & Visual Designer in Porto Alegre, Brazil. The site is built with semantic HTML, modern CSS and small, dependency-free JavaScript so it can be deployed directly to Netlify.
+An editorial, performance-conscious one-page portfolio for Artur Silveira de Albuquerque, Product & Visual Designer in Porto Alegre, Brazil. The site uses semantic HTML, a two-theme CSS system, vanilla JavaScript, and GSAP with ScrollTrigger for its primary motion language.
+
+There is no package manager, build process, framework, remote font, or generated application bundle. The repository deploys directly as a static Netlify site.
 
 ## Project structure
 
 ```text
 .
-├── index.html                         Page content, metadata and structured data
-├── style.css                          Visual system, responsive layouts and motion
-├── script.js                          Progressive enhancement and interactions
-├── netlify.toml                       Static publishing, security and cache headers
+├── index.html                         Content, metadata, structured data and media manifest hooks
+├── style.css                          Dark/light themes, editorial layouts and responsive styling
+├── script.js                          Theme, navigation, viewer, disclosures and GSAP motion
+├── netlify.toml                       Publish path, CSP, security and cache headers
 ├── README.md                          Maintenance and publishing guide
 └── assets/
-    ├── images/                        Project and visual-work WebP files
-    ├── videos/                        Optimized MP4 motion work
-    └── resume/                        Downloadable résumé PDF
+    ├── images/                        Project, gallery and video-poster images
+    ├── videos/                        User-initiated MP4 motion work
+    ├── vendor/                        Pinned GSAP core and ScrollTrigger runtime
+    └── resume/
+        └── Artur_Silveira_Resume_Automattic.pdf
 ```
 
-The current media areas are CSS-rendered placeholders. They display the expected path without requesting a missing file, so there are no media-related 404s during page load.
+The media areas currently use CSS-rendered fallback frames. They display the expected path but do not request absent files, so the initial portfolio has no media-related 404s.
 
 ## Run locally
 
-No installation or build step is required. Do not open `index.html` directly if you want to test the site under production-like conditions; run a small static server from the project root instead.
-
-With Python:
+No installation is required. From the project root, run a static server:
 
 ```bash
 python -m http.server 8080
 ```
 
-Then open `http://localhost:8080/`.
-
-Other static file servers work as well. The site has no npm dependencies and no generated output folder.
+Open `http://localhost:8080/`. A local server is preferable to opening `index.html` directly because it reproduces CSP and media behavior more accurately.
 
 ## Deploy on Netlify
 
-1. Import the repository into Netlify.
+1. Import the GitHub repository into Netlify.
 2. Leave the build command empty.
 3. Use the repository root (`.`) as the publish directory.
 4. Deploy.
 
-The included `netlify.toml` already supplies the publish directory, security headers and asset caching rules. Before the public launch, add the final production URL to the canonical link placeholder in `index.html` and add the same URL to Open Graph metadata if desired.
+`netlify.toml` already sets the publish directory, security headers and static-asset caching. Before launch, replace the canonical URL comment in `index.html` with the production URL.
 
-## Replace the project screenshots
+## GSAP loading strategy
 
-Export and copy the final screenshots to these exact paths:
+GSAP 3.13 core and ScrollTrigger are pinned in `assets/vendor/` and loaded as two deferred, same-origin scripts. They are the unchanged official minified distribution files. Self-hosting avoids a runtime CDN dependency, works with the strict same-origin CSP, and lets Netlify apply the repository’s long-lived asset cache policy. The local script loads after both files and registers ScrollTrigger once.
+
+To upgrade GSAP, replace both official distribution files together, update this version note, and rerun all motion and reduced-motion checks. If the animation runtime ever fails to load, content remains visible and all core interactions still work with immediate state changes. The page does not rely on GSAP for layout or access to information.
+
+The animation system in `script.js` is organized into:
+
+- one scoped `gsap.context()` for page motion;
+- one `gsap.matchMedia()` split for desktop and mobile distances;
+- one hero entrance timeline and one small decorative timeline;
+- grouped ScrollTriggers for editorial sections;
+- distinct mask and directional sequences for each project;
+- a single timeline drawing sequence;
+- three restrained desktop-only parallax effects;
+- cleanup through `revert()` when motion preferences change or the page is left.
+
+Navigation state, theme changes, disclosures and media-viewer behavior remain independent of ScrollTrigger.
+
+## Reduced motion and older devices
+
+The page respects `prefers-reduced-motion`. When reduction is requested:
+
+- GSAP page motion and parallax are not initialized;
+- decorative CSS loops are disabled;
+- disclosures and the media viewer change state immediately;
+- smooth scrolling is disabled;
+- content remains in its final readable position.
+
+Mobile layouts use shorter entrances and omit parallax. Pointer response runs only on hover-capable fine pointers. Decorative motion pauses while the browser tab is hidden.
+
+All content is visible without JavaScript. The mobile navigation expands in the document flow and both case studies remain open when JavaScript is unavailable.
+
+## Theme system
+
+Dark and light themes are defined at the beginning of `style.css` using custom properties. Change the palette there:
+
+```css
+:root { /* dark theme */ }
+html[data-theme="light"] { /* light theme */ }
+```
+
+The accessible navigation toggle saves the selection under `artur-portfolio-theme` in `localStorage`. On a first visit, the page respects `prefers-color-scheme`. The browser `theme-color` metadata is updated whenever the theme changes.
+
+When changing colors, verify text, muted text, controls, focus indicators and borders in both themes. Keep red as the primary action color and purple as a secondary accent.
+
+## Add or replace project screenshots
+
+Project frames are already connected to the accessible media viewer through `data-*` attributes. To activate an image:
+
+1. Add the WebP or AVIF file at the exact manifest path.
+2. Find the matching element in `index.html` by its `data-media-src` value.
+3. Change `data-media-ready="false"` to `data-media-ready="true"`.
+
+JavaScript then adds a lazy-loaded image to the existing editorial frame and opens the same file in the viewer. The frame dimensions are fixed, preventing layout shifts. Keep the supplied descriptive `data-media-alt` text accurate; edit it if the final screenshot content differs.
+
+For art-directed sources, replace the generated inline image with a `<picture>` element using AVIF and WebP sources. Preserve the trigger’s accessible name and viewer data attributes.
+
+Recommended exports:
+
+- Main desktop screenshots: 1800 × 1125 px, approximately 8:5.
+- Supporting desktop or detail screenshots: 1400–1800 px on the longest edge.
+- Mobile screenshots: 900 × 1800 px, approximately 1:2.
+- Creative gallery images: 1200–1800 px on the longest edge, preserving the intended crop.
+- Maximum image width: usually 1600–2000 px.
+- Target size: generally below 250 KB; allow slightly more only when interface detail requires it.
+
+Export in sRGB. WebP quality around 72–82 is a good starting point. AVIF may be smaller, but inspect fine type and high-contrast edges before publishing.
+
+## Add or replace videos
+
+Video tiles use `data-media-kind="video"`. To activate one:
+
+1. Add the MP4 and its poster image at the paths listed below.
+2. Change the tile’s `data-media-ready` value to `true`.
+3. Confirm its title, category and accessible description.
+
+The gallery loads only the poster image. The MP4 source is assigned when a visitor opens the viewer. Videos use native controls, `playsinline` and `preload="metadata"`; playback never begins automatically.
+
+Recommended video encoding:
+
+- MP4 container, H.264 video and AAC audio.
+- 720p or 1080p at the source frame rate, usually 24 or 30 fps.
+- CRF 24–28 or an equivalent visually inspected setting.
+- AAC at roughly 96–128 kbps when audio is necessary.
+- Fast-start enabled so the MP4 metadata is at the beginning.
+- Preferably below 8–12 MB per clip.
+
+Poster recommendations:
+
+- Export a WebP poster matching the video’s display ratio.
+- Use at least 1280 px on the longest edge.
+- Keep it below approximately 180 KB.
+- Choose a representative frame without embedded play controls; the interface supplies its own play affordance.
+
+## Full asset manifest
+
+### Project screenshots
 
 ```text
 assets/images/rodociclo-before.webp
 assets/images/rodociclo-after.webp
 assets/images/rodociclo-mobile.webp
+assets/images/rodociclo-detail.webp
 assets/images/biketech-before.webp
 assets/images/biketech-after.webp
 assets/images/biketech-mobile.webp
+assets/images/biketech-detail.webp
 ```
 
-The first version deliberately does not include `<img>` elements for missing files. When an image is ready, replace the matching `.placeholder-canvas`, `.comparison-pane` or `.split-canvas` placeholder in `index.html` with a `<picture>` element. Example:
-
-```html
-<picture>
-  <source media="(max-width: 760px)" srcset="assets/images/rodociclo-mobile.webp">
-  <img
-    src="assets/images/rodociclo-after.webp"
-    width="1600"
-    height="1000"
-    loading="lazy"
-    decoding="async"
-    alt="Rodociclo Bikeshop redesigned desktop storefront showing [describe the visible page and important design decision]">
-</picture>
-```
-
-Always keep explicit `width` and `height` attributes to prevent layout shifts. Write alt text that describes what is visible and why the screenshot matters; avoid repeating the project name without adding information. For a before-and-after pair, distinguish the earlier experience from the implemented change in each alt description.
-
-### Recommended screenshot dimensions
-
-- Desktop project screenshots: 1600 × 1000 px or 1920 × 1200 px, 8:5 ratio.
-- Mobile screenshots: 720 × 1440 px or 900 × 1800 px, 1:2 ratio.
-- Before-and-after images: use identical dimensions and crop positions.
-- Visual gallery images: at least 1200 px on the longest edge; preserve the composition’s natural ratio.
-
-Export as WebP in sRGB. A quality setting around 72–82 is a good starting range. Aim for 120–280 KB for desktop screenshots and under 160 KB for mobile or gallery images. Inspect typography and fine interface details after compression; use the smallest file that remains visually clean.
-
-## Replace the visual-work images
-
-Add the three files below, then replace their matching `.gallery-placeholder` elements with lazy-loaded `<img>` or `<picture>` markup:
+### Creative gallery images
 
 ```text
 assets/images/visual-work-01.webp
 assets/images/visual-work-02.webp
 assets/images/visual-work-03.webp
+assets/images/visual-work-04.webp
+assets/images/visual-work-05.webp
+assets/images/visual-work-06.webp
 ```
 
-Keep the existing `<figure>` and `<figcaption>` structure. Update each caption and alt description so they explain the work accurately.
-
-## Replace the videos
-
-Add the final videos at:
+### Motion work and posters
 
 ```text
 assets/videos/motion-work-01.mp4
 assets/videos/motion-work-02.mp4
+assets/videos/motion-work-03.mp4
+assets/images/motion-work-01-poster.webp
+assets/images/motion-work-02-poster.webp
+assets/images/motion-work-03-poster.webp
 ```
 
-Replace the matching gallery placeholder with a native `<video controls preload="none" playsinline>` element. Do not add `autoplay`. Add a compressed WebP poster image so the browser does not need to load the video to paint the gallery.
-
-Recommended encoding:
-
-- MP4 container with H.264 video and AAC audio.
-- 1080p or 720p depending on source quality.
-- 24 or 30 fps; avoid exporting a higher frame rate than the source.
-- CRF 24–28 or an equivalent visually inspected quality target.
-- AAC around 96–128 kbps when audio is necessary.
-- Enable “fast start” / move the MP4 `moov` atom to the beginning.
-- Keep portfolio clips concise and ideally below 5–8 MB each.
-
-## Update the résumé
-
-A clean one-page starter résumé is included at:
+### Résumé
 
 ```text
 assets/resume/Artur_Silveira_Resume_Automattic.pdf
 ```
 
-It uses only the facts supplied for this project and makes every download link functional in the first version. Artur should review and replace it with the final application résumé before launch. All résumé links already point to that path and use the browser’s download behavior. Keep the filename unchanged or update every résumé link in `index.html`. Compress embedded images and verify that the PDF remains selectable, accessible and comfortably below 2 MB.
+## Update the résumé
 
-## Reduced-motion support
-
-The page respects the operating system’s `prefers-reduced-motion` setting. When reduction is requested:
-
-- smooth scrolling is disabled;
-- decorative orbits, floating objects and pointer ambience are removed;
-- staged reveal transitions show their final state immediately;
-- counters display their final values without animation;
-- sticky process positioning is simplified.
-
-All content remains visible without JavaScript. JavaScript adds the mobile menu behavior, scroll reveals, one-time metric animation, timeline drawing, hero ambience and the generated footer year.
+Replace the PDF at the existing path and keep its filename, or update every résumé link in `index.html`. The included starter uses only the supplied facts. Before publishing an application-specific version, confirm the final wording and keep selectable text. A practical target is comfortably below 2 MB.
 
 ## Update project and profile text
 
-All visitor-facing copy is in `index.html` and can be edited directly. Project case studies are inside `<details class="case-study">` elements. Keep each section concise and evidence-based. If the commercial result changes, update both the visible outcome panel and the Rodociclo case-study outcome so the wording stays consistent.
+Visitor-facing content is in `index.html`. The two case studies use `data-case-study` disclosure blocks and must retain their eight-part sequence. Keep claims evidence-based and keep “Social Media Manager” limited to Rodociclo Bikeshop and Bike Tech Moinhos.
 
-Do not add proficiency percentages, unverified growth claims, invented research methods or social links that Artur does not use. Keep “Social Media Manager” limited to Rodociclo Bikeshop and Bike Tech Moinhos unless Artur’s responsibilities change.
+The media viewer takes its title, category, source path and alternative text from each tile’s data attributes. This lets the gallery remain consistent without duplicating content in JavaScript.
 
 ## Content requiring Artur’s confirmation
 
 Before the final public launch, Artur should confirm:
 
-- the final résumé PDF and whether the Automattic-specific filename should remain public;
-- the precise Rodociclo results wording and the current R$30,000–R$50,000 range;
-- the concise starter case-study narratives, especially research, feedback, rollout and technical details;
+- final screenshots, gallery work, video edits, poster frames, captions and alt text;
+- case-study specifics, particularly research methods, feedback evidence and rollout details;
+- the Rodociclo outcome wording and the current R$30,000–R$50,000 range;
 - role titles and employment dates for all three experience entries;
-- education names, providers and completion dates;
-- English level, email address, location and remote-availability statement;
-- final screenshots, visual work, motion work, captions and descriptive alt text;
+- education providers, program names and completion dates;
+- English level, email, location and global-availability statement;
+- the “Currently exploring Figma and advanced product design workflows” note;
+- the final résumé;
 - the production domain for canonical and share metadata.
 
-HTML comments are placed inside both case studies as editorial reminders. They do not appear to visitors.
-
-## Performance and accessibility notes
-
-- No frameworks, package manager, remote fonts, third-party scripts or animation libraries.
-- System font stack avoids font downloads and layout shifts.
-- Decorative movement uses transforms and opacity and pauses when the hero is off screen.
-- Section reveals, counters and timeline drawing use `IntersectionObserver` and run once.
-- Touch layouts remove pointer-only effects and simplify decorative layers.
-- Native `<details>` controls provide keyboard-accessible case studies.
-- The navigation, menu button, focus indicators, landmarks, heading hierarchy and skip link are accessible by keyboard.
-- Media is only loaded after real files are added, and should use lazy loading except for any image that becomes the page’s largest contentful paint element.
+Editorial HTML comments inside both case studies mark the narrative areas that need confirmation. They are not visible to visitors.
