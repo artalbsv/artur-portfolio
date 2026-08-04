@@ -1,0 +1,11 @@
+# Workspace-only folders
+/work/
+/outputs/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Local server and audit output
+*.log
+.lighthouseci/
