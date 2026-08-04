@@ -63,6 +63,30 @@
     else if ('addListener' in systemTheme) systemTheme.addListener(handleSystemTheme);
   }
 
+  function initializeProfileAvatar() {
+    const image = $('[data-profile-image]');
+    const avatar = image?.closest('[data-profile-avatar]');
+    if (!image || !avatar) return;
+
+    const showFallback = () => {
+      image.hidden = true;
+      avatar.classList.add('is-fallback');
+    };
+
+    const showPortrait = () => {
+      image.hidden = false;
+      avatar.classList.remove('is-fallback');
+    };
+
+    image.addEventListener('load', showPortrait, { once: true });
+    image.addEventListener('error', showFallback, { once: true });
+
+    if (image.complete) {
+      if (image.naturalWidth > 0) showPortrait();
+      else showFallback();
+    }
+  }
+
   function initializeNavigation() {
     const header = $('[data-header]');
     const menu = $('[data-menu]');
@@ -639,6 +663,7 @@
   }
 
   initializeTheme();
+  initializeProfileAvatar();
   initializeNavigation();
   initializeCaseStudies();
   initializeInlineMedia();

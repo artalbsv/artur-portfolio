@@ -248,20 +248,50 @@ ol { margin: 0; padding: 0; list-style: none; }
 }
 
 .brand-mark {
+  position: relative;
   display: grid;
   width: 36px;
   height: 36px;
-  border-radius: 11px 11px 11px 4px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
   background: var(--text);
+  box-shadow: 0 2px 9px rgba(0, 0, 0, 0.16);
   color: var(--bg);
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  font-weight: 800;
   place-items: center;
-  transition: border-radius 220ms var(--ease), background-color 220ms ease, color 220ms ease;
+  isolation: isolate;
+  transition: border-color 220ms ease, box-shadow 220ms ease;
 }
 
-.brand:hover .brand-mark { border-radius: 6px 14px 6px 14px; }
+.brand-initials {
+  grid-area: 1 / 1;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.brand-photo {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 46%;
+  transition: transform 240ms var(--ease);
+}
+
+.brand-photo[hidden] { display: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  .brand:hover .brand-mark {
+    border-color: rgba(227, 38, 54, 0.62);
+    box-shadow: 0 3px 11px rgba(0, 0, 0, 0.2);
+  }
+
+  .brand:hover .brand-photo { transform: scale(1.05); }
+}
 
 .brand-name {
   font-size: 0.88rem;
@@ -2036,4 +2066,5 @@ em {
   .hero-geometry,
   .hand-note path,
   .contact-signature path { animation: none !important; }
+  .brand:hover .brand-photo { transform: none; }
 }

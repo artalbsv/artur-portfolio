@@ -141,6 +141,12 @@ For art-directed responsive sources, a `<picture>` element may replace the gener
 
 ## Full asset manifest
 
+### Navigation portrait
+
+```text
+assets/images/artur-profile.webp
+```
+
 ### Project screenshots
 
 ```text
