@@ -53,11 +53,13 @@ The animation system in `script.js` is organized into:
 - one scoped `gsap.context()` for page motion;
 - one `gsap.matchMedia()` split for desktop and mobile distances;
 - one hero entrance timeline and one small decorative timeline;
-- grouped ScrollTriggers for editorial sections;
+- semantic word reveals that preserve readable source text before JavaScript runs;
+- grouped ScrollTriggers for editorial sections and gallery drift;
 - distinct mask and directional sequences for each project;
 - a single timeline drawing sequence;
-- three restrained desktop-only parallax effects;
-- cleanup through `revert()` when motion preferences change or the page is left.
+- restrained desktop-only parallax, depth and pointer spotlight effects;
+- magnetic feedback for primary controls on fine-pointer devices;
+- cleanup through `revert()` and listener removal when motion preferences change or the page is left.
 
 Navigation state, theme changes, disclosures and media-viewer behavior remain independent of ScrollTrigger.
 

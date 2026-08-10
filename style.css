@@ -502,6 +502,41 @@ html[data-theme="light"] .theme-toggle-glyph::after { transform: translate(9px, 
   transform-origin: left;
 }
 
+/* Kinetic type remains readable before JavaScript and without GSAP. */
+.motion-word {
+  display: inline-block;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+  overflow: clip;
+  perspective: 700px;
+  vertical-align: bottom;
+}
+
+.motion-word > span {
+  display: inline-block;
+  backface-visibility: hidden;
+  transform-origin: 50% 100%;
+}
+
+[data-split-reveal] em {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+
+.motion-brush {
+  position: absolute;
+  z-index: -1;
+  right: -0.02em;
+  bottom: 0.02em;
+  left: -0.02em;
+  height: 0.1em;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--red), var(--purple));
+  opacity: 0.34;
+  transform-origin: left center;
+}
+
 em {
   color: var(--red);
   font-style: normal;
@@ -886,6 +921,34 @@ em {
   text-align: left;
   box-shadow: var(--shadow);
 }
+
+.motion-surface {
+  --spot-x: 50%;
+  --spot-y: 50%;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.motion-surface::before {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background: radial-gradient(circle at var(--spot-x) var(--spot-y), rgba(255, 255, 255, 0.16), transparent 31%);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease;
+}
+
+.motion-surface:hover::before,
+.motion-surface:focus-visible::before { opacity: 0.58; }
+
+.motion-surface .media-content {
+  transition: transform 650ms var(--ease);
+}
+
+.motion-surface:hover .media-content,
+.motion-surface:focus-visible .media-content { transform: scale(1.018); }
 
 .media-content {
   position: absolute;
@@ -1319,6 +1382,11 @@ em {
   transform: translateY(-3px);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .motion-surface:hover,
+  .motion-surface:focus-visible { will-change: transform; }
+}
+
 .creative-tile button::after {
   position: absolute;
   z-index: 1;
@@ -1480,8 +1548,22 @@ em {
   transition: padding-left 260ms var(--ease), color 180ms ease;
 }
 
+.method-list li::before {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--red), var(--purple));
+  content: "";
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 460ms var(--ease);
+}
+
 .method-list li:last-child { border-bottom: 1px solid var(--line); }
 .method-list li:hover { padding-left: 12px; }
+.method-list li:hover::before { transform: scaleX(1); }
 .method-list li > span { color: var(--red-bright); font-family: var(--mono); font-size: 0.75rem; }
 .method-list h3 { margin-bottom: 7px; font-size: clamp(1.25rem, 2vw, 1.6rem); letter-spacing: -0.03em; }
 .method-list p { color: var(--muted); font-size: 0.9rem; }
@@ -1492,7 +1574,10 @@ em {
   height: 26px;
   border: 1px solid var(--line);
   border-radius: 50%;
+  transition: border-color 240ms ease, transform 320ms var(--ease);
 }
+
+.method-list li:hover i { border-color: var(--red); transform: rotate(45deg) scale(1.05); }
 
 .method-list i::after {
   position: absolute;
@@ -1577,7 +1662,10 @@ em {
   cursor: pointer;
   font-weight: 650;
   list-style: none;
+  transition: color 200ms ease, transform 280ms var(--ease);
 }
+
+.toolset summary:hover { color: var(--red); transform: translateX(5px); }
 
 .toolset summary::-webkit-details-marker { display: none; }
 .toolset summary span { color: var(--purple-text); font-family: var(--mono); font-size: 0.75rem; }
@@ -2067,4 +2155,10 @@ em {
   .hand-note path,
   .contact-signature path { animation: none !important; }
   .brand:hover .brand-photo { transform: none; }
+  .motion-surface:hover .media-content,
+  .motion-surface:focus-visible .media-content,
+  .method-list li:hover i,
+  .toolset summary:hover { transform: none !important; }
+  .motion-surface::before { display: none; }
+  .motion-brush { transform: none !important; }
 }
