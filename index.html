@@ -18,7 +18,7 @@
   <meta name="twitter:description" content="Digital products and commerce experiences designed from strategy through implementation.">
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23050505'/%3E%3Cpath d='M17 45 29 17h6l12 28h-7l-2.5-6H26L23.5 45H17Zm11.2-12h7.1l-3.5-8.8-3.6 8.8Z' fill='%23F5F5F7'/%3E%3Cpath d='M39 17h8v6h-8z' fill='%23E32636'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=20260810">
+  <link rel="stylesheet" href="style.css?v=20260810b">
 
   <script>
     (() => {
@@ -34,7 +34,7 @@
   </script>
   <script src="assets/vendor/gsap.min.js" defer></script>
   <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
-  <script src="script.js?v=20260810" defer></script>
+  <script src="script.js?v=20260810b" defer></script>
 
   <script type="application/ld+json">
   {
@@ -123,6 +123,10 @@
         </div>
 
         <div class="hero-studio" aria-label="Artur's working disciplines">
+          <p class="hero-mode" aria-label="Working across product systems, commerce experiences, visual narratives and working prototypes">
+            <span data-scramble>Working across</span>
+            <strong data-text-morph data-morph-words="Product systems|Commerce experiences|Visual narratives|Working prototypes">Product systems</strong>
+          </p>
           <p class="studio-note">Visual thinking,<br>technical making.</p>
           <ul class="discipline-list" aria-label="Disciplines">
             <li><span>01</span>Design</li>
@@ -133,13 +137,33 @@
 
           <div class="hero-object" aria-hidden="true" data-pointer-object>
             <svg class="hero-geometry" viewBox="0 0 420 420" role="presentation">
-              <circle cx="210" cy="210" r="158"></circle>
-              <ellipse cx="210" cy="210" rx="86" ry="158" transform="rotate(38 210 210)"></ellipse>
-              <path d="M58 264C126 156 278 126 364 224"></path>
-              <path class="geometry-accent" d="M96 112 326 316"></path>
-              <circle class="geometry-dot" cx="326" cy="316" r="7"></circle>
+              <g class="geometry-grid" data-field-layer="grid">
+                <path d="M44 126H376M25 168H395M14 210H406M25 252H395M44 294H376"></path>
+                <path d="M126 44V376M168 25V395M210 14V406M252 25V395M294 44V376"></path>
+              </g>
+              <g class="geometry-orbit geometry-orbit-a" data-field-layer="orbit-a">
+                <ellipse cx="210" cy="210" rx="174" ry="62" transform="rotate(-18 210 210)"></ellipse>
+                <ellipse cx="210" cy="210" rx="157" ry="76" transform="rotate(14 210 210)"></ellipse>
+                <ellipse cx="210" cy="210" rx="134" ry="91" transform="rotate(48 210 210)"></ellipse>
+              </g>
+              <g class="geometry-orbit geometry-orbit-b" data-field-layer="orbit-b">
+                <ellipse cx="210" cy="210" rx="108" ry="160" transform="rotate(28 210 210)"></ellipse>
+                <ellipse cx="210" cy="210" rx="84" ry="174" transform="rotate(-42 210 210)"></ellipse>
+              </g>
+              <circle class="geometry-halo" cx="210" cy="210" r="82"></circle>
+              <circle class="geometry-horizon" cx="210" cy="210" r="58"></circle>
+              <circle class="geometry-core" cx="210" cy="210" r="43"></circle>
+              <path class="geometry-accent" d="M70 240C125 172 302 153 362 223"></path>
+              <path class="geometry-accent geometry-accent-secondary" d="M101 282C173 325 293 309 342 250"></path>
+              <g class="geometry-particles" data-field-layer="particles">
+                <circle class="geometry-dot" cx="82" cy="142" r="4"></circle>
+                <circle class="geometry-dot geometry-dot-muted" cx="337" cy="124" r="3"></circle>
+                <circle class="geometry-dot" cx="356" cy="287" r="5"></circle>
+                <circle class="geometry-dot geometry-dot-muted" cx="119" cy="331" r="3"></circle>
+              </g>
             </svg>
-            <span class="object-code">POA / 30.03°S</span>
+            <span class="object-code" data-scramble>INTERACTIVE / POA</span>
+            <span class="object-readout">POINTER FIELD · SVG</span>
           </div>
 
           <svg class="hand-note" viewBox="0 0 250 94" aria-hidden="true">
@@ -166,7 +190,7 @@
         <article class="project project-rodociclo" aria-labelledby="rodociclo-title" data-project="rodociclo">
           <div class="project-side-note" aria-hidden="true">RECONSTRUCTION / COMMERCE / 01</div>
           <header class="project-heading" data-motion-group>
-            <div class="project-kicker"><span>01</span><p>Bicycle e-commerce · Tray</p></div>
+            <div class="project-kicker"><span>01</span><p data-scramble>Bicycle e-commerce · Tray</p></div>
             <h3 id="rodociclo-title" data-split-reveal>Rodociclo<br><em>Bikeshop</em></h3>
             <dl class="project-facts">
               <div><dt>Role</dt><dd>Product, Web &amp; Visual Designer · Social Media Manager</dd></div>
@@ -210,15 +234,30 @@
             </ul>
           </div>
 
-          <div class="before-after" data-motion-group aria-label="Rodociclo homepage before and after the redesign">
-            <button class="comparison comparison-before media-trigger" type="button" data-viewer-item data-media-kind="image" data-media-ready="true" data-media-title="Rodociclo homepage before the redesign" data-media-category="Before" data-media-src="assets/images/rodociclo-before.webp" data-media-alt="Rodociclo homepage before the redesign" data-media-width="1600" data-media-height="906">
-              <span>Before</span><strong>Original storefront</strong><code>assets/images/rodociclo-before.webp</code>
-            </button>
-            <button class="comparison comparison-after media-trigger" type="button" data-viewer-item data-media-kind="image" data-media-ready="true" data-media-title="Rodociclo homepage after the redesign" data-media-category="After" data-media-src="assets/images/rodociclo-after.webp" data-media-alt="Rodociclo homepage after the redesign" data-media-width="1600" data-media-height="907">
-              <span>After</span><strong>Redesigned storefront</strong><code>assets/images/rodociclo-after.webp</code>
-            </button>
-            <a class="project-visit" href="https://www.rodociclo.com.br/" target="_blank" rel="noopener noreferrer">Visit live website <span aria-hidden="true">↗</span></a>
-          </div>
+          <figure class="morph-comparison" data-comparison data-motion-group aria-labelledby="rodociclo-comparison-title">
+            <header class="morph-comparison-header">
+              <span data-scramble>Interface reconstruction / interactive comparison</span>
+              <p id="rodociclo-comparison-title">Move the divider or use the arrow keys to inspect the original and redesigned storefront.</p>
+            </header>
+            <div class="morph-comparison-stage" style="--compare: 50%;">
+              <img class="morph-comparison-after" src="assets/images/rodociclo-after.webp" width="1600" height="907" loading="lazy" decoding="async" alt="Rodociclo homepage after the redesign">
+              <div class="morph-comparison-before" data-comparison-layer>
+                <img src="assets/images/rodociclo-before.webp" width="1600" height="906" loading="lazy" decoding="async" alt="Rodociclo homepage before the redesign">
+              </div>
+              <input type="range" min="0" max="100" value="50" aria-label="Compare the Rodociclo homepage before and after the redesign" aria-valuetext="50 percent original and 50 percent redesigned" data-comparison-input>
+              <span class="morph-comparison-divider" aria-hidden="true"><i></i></span>
+              <span class="morph-comparison-label morph-comparison-label-before" aria-hidden="true">Before</span>
+              <span class="morph-comparison-label morph-comparison-label-after" aria-hidden="true">After</span>
+            </div>
+            <figcaption>
+              <div><strong data-comparison-status>50 / 50</strong><span>Original / redesigned</span></div>
+              <div class="morph-comparison-actions">
+                <button class="compare-viewer-button" type="button" data-viewer-item data-viewer-only data-media-kind="image" data-media-ready="true" data-media-title="Rodociclo homepage before the redesign" data-media-category="Before" data-media-src="assets/images/rodociclo-before.webp" data-media-alt="Rodociclo homepage before the redesign" data-media-width="1600" data-media-height="906">View before <span aria-hidden="true">↗</span></button>
+                <button class="compare-viewer-button" type="button" data-viewer-item data-viewer-only data-media-kind="image" data-media-ready="true" data-media-title="Rodociclo homepage after the redesign" data-media-category="After" data-media-src="assets/images/rodociclo-after.webp" data-media-alt="Rodociclo homepage after the redesign" data-media-width="1600" data-media-height="907">View after <span aria-hidden="true">↗</span></button>
+                <a class="project-visit" href="https://www.rodociclo.com.br/" target="_blank" rel="noopener noreferrer">Visit live website <span aria-hidden="true">↗</span></a>
+              </div>
+            </figcaption>
+          </figure>
 
           <div class="case-disclosure" data-case-study>
             <button class="case-toggle" type="button" aria-expanded="false" aria-controls="rodociclo-case" data-case-toggle>
@@ -244,7 +283,7 @@
           <div class="biketech-intro" data-motion-group>
             <p class="project-index-large" aria-hidden="true">02</p>
             <div class="biketech-title-block">
-              <p class="project-label">Premium catalogue / commerce system</p>
+              <p class="project-label" data-scramble>Premium catalogue / commerce system</p>
               <h3 id="biketech-title" data-split-reveal>Bike Tech<br><em>Moinhos</em></h3>
             </div>
             <p class="project-summary">A complete redesign and implementation of a premium bicycle e-commerce experience, focused on catalogue organization, product discovery, responsiveness, visual consistency and customer purchasing flows.</p>
@@ -314,7 +353,7 @@
           <p class="section-index" data-section-number>03 / 07</p>
           <h2 id="creative-title" data-split-reveal>Visual systems<br><em>in motion.</em></h2>
           <p>Before focusing on digital products and e-commerce, I developed years of experience across visual design, image manipulation, video editing, motion and social content.</p>
-          <span>Photoshop · After Effects · CapCut</span>
+          <span data-scramble>Photoshop · After Effects · CapCut</span>
         </header>
 
         <!-- Artur: confirm the final public-facing titles and project context for source files DZ1–DZ5. -->
@@ -385,11 +424,11 @@
           <p class="section-index" data-section-number>04 / 07</p>
           <h2 id="about-title" data-split-reveal>Designing visually.<br><em>Thinking technically.</em></h2>
           <p>I started working with visual design and editing in 2018. Today, my work connects product thinking, interface design, e-commerce development, visual communication and AI-assisted workflows. I enjoy learning unfamiliar systems, understanding their constraints and turning business needs into clear and functional digital experiences.</p>
-          <div class="about-annotation"><span>Current direction</span><strong>Currently exploring Figma and advanced product design workflows.</strong></div>
+          <div class="about-annotation"><span data-scramble>Current direction</span><strong>Currently exploring Figma and advanced product design workflows.</strong></div>
         </div>
 
         <div class="method" data-motion-group>
-          <p class="method-label">How I move through a problem</p>
+          <p class="method-label" data-scramble>How I move through a problem</p>
           <ol class="method-list">
             <li><span>01</span><div><h3>Understand</h3><p>Clarify user needs, business goals, technical constraints and existing problems.</p></div><i aria-hidden="true"></i></li>
             <li><span>02</span><div><h3>Explore</h3><p>Use sketches, visual studies, code-assisted prototypes and AI workflows to test directions quickly.</p></div><i aria-hidden="true"></i></li>
@@ -426,7 +465,7 @@
           </div>
 
           <div class="toolset" data-motion-group>
-            <p class="toolset-label">Working toolkit / select a discipline</p>
+            <p class="toolset-label" data-scramble>Working toolkit / select a discipline</p>
             <details open>
               <summary><span>01</span>Product <i aria-hidden="true">+</i></summary>
               <ul><li>Product Design</li><li>UI Design</li><li>Visual Design</li><li>E-commerce Design</li><li>Responsive Web Design</li><li>User Feedback</li><li>Usability Testing</li><li>Design Iteration</li></ul>

@@ -15,8 +15,10 @@
   let motionContext = null;
   let motionMedia = null;
   let heroLoop = null;
+  let heroVisible = true;
   let pointerCleanup = null;
   let interactionCleanup = null;
+  let kineticCleanup = null;
   let scrollFrame = 0;
   let maximumScroll = 1;
   let gsapRegistered = false;
@@ -172,6 +174,20 @@
     intro.innerHTML = '<i></i><i></i><i></i><span class="motion-intro-mark">AS / PORTFOLIO</span>';
     document.body.prepend(intro);
 
+    const spine = document.createElement('ol');
+    spine.className = 'motion-spine';
+    spine.setAttribute('aria-hidden', 'true');
+    spine.innerHTML = [
+      ['top', 'Intro'],
+      ['work', 'Work'],
+      ['visual-work', 'Visual'],
+      ['about', 'Method'],
+      ['experience', 'Experience'],
+      ['credentials', 'Education'],
+      ['contact', 'Contact']
+    ].map(([id, label], index) => `<li data-spine-section="${id}"${index === 0 ? ' class="is-active"' : ''}><i></i><span>${label}</span></li>`).join('');
+    document.body.append(spine);
+
     $$('[data-section]:not(.hero)').forEach((section) => {
       const rail = document.createElement('span');
       rail.className = 'motion-section-rail';
@@ -193,7 +209,7 @@
       shape.setAttribute('pathLength', '1');
     });
 
-    $$('[data-viewer-item]').forEach((trigger) => {
+    $$('[data-viewer-item]:not([data-viewer-only])').forEach((trigger) => {
       const shutter = document.createElement('span');
       shutter.className = 'motion-shutter';
       shutter.setAttribute('aria-hidden', 'true');
@@ -299,6 +315,9 @@
         navLinks.forEach((link) => {
           if (link.getAttribute('href') === `#${activeId}`) link.setAttribute('aria-current', 'location');
           else link.removeAttribute('aria-current');
+        });
+        $$('[data-spine-section]').forEach((item) => {
+          item.classList.toggle('is-active', item.dataset.spineSection === visibleSection);
         });
       }, { rootMargin: '-28% 0px -58% 0px', threshold: [0.01, 0.2, 0.6] });
       sections.forEach((section) => observer.observe(section));
@@ -425,8 +444,192 @@
     });
   }
 
+  function initializeComparisons() {
+    $$('[data-comparison]').forEach((comparison) => {
+      const stage = $('.morph-comparison-stage', comparison);
+      const input = $('[data-comparison-input]', comparison);
+      const status = $('[data-comparison-status]', comparison);
+      if (!stage || !input) return;
+
+      const update = () => {
+        const before = Math.min(100, Math.max(0, Number(input.value)));
+        const after = 100 - before;
+        stage.style.setProperty('--compare', `${before}%`);
+        input.setAttribute('aria-valuetext', `${before} percent original and ${after} percent redesigned`);
+        if (status) status.textContent = `${before} / ${after}`;
+      };
+
+      input.addEventListener('input', update, { passive: true });
+      input.addEventListener('dblclick', () => {
+        input.value = '50';
+        update();
+      });
+      update();
+    });
+  }
+
+  function initializeKineticDetails() {
+    kineticCleanup?.();
+    const cleanupTasks = [];
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789—/·';
+
+    const scramble = (element) => {
+      if (reducedMotion.matches) return;
+      const original = element.dataset.scrambleText || element.textContent.trim();
+      if (!original) return;
+      element.dataset.scrambleText = original;
+      element.setAttribute('aria-label', original);
+
+      cancelAnimationFrame(Number(element.dataset.scrambleFrame || 0));
+      const started = performance.now();
+      const duration = Math.min(920, 430 + original.length * 11);
+      const characters = [...original];
+
+      const render = (now) => {
+        const progress = Math.min(1, (now - started) / duration);
+        const revealed = Math.floor(progress * characters.length);
+        element.textContent = characters.map((character, index) => {
+          if (/\s/.test(character) || index < revealed) return character;
+          return alphabet[Math.floor(Math.random() * alphabet.length)];
+        }).join('');
+
+        if (progress < 1) {
+          element.dataset.scrambleFrame = String(requestAnimationFrame(render));
+        } else {
+          element.textContent = original;
+          delete element.dataset.scrambleFrame;
+        }
+      };
+
+      element.dataset.scrambleFrame = String(requestAnimationFrame(render));
+    };
+
+    const scrambleTargets = $$('[data-scramble]');
+    const scrambleObserver = 'IntersectionObserver' in window
+      ? new IntersectionObserver((entries, observer) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            scramble(entry.target);
+            observer.unobserve(entry.target);
+          });
+        }, { rootMargin: '0px 0px -12% 0px', threshold: 0.25 })
+      : null;
+
+    scrambleTargets.forEach((element) => {
+      element.dataset.scrambleText = element.textContent.trim();
+      const handleEnter = () => scramble(element);
+      element.addEventListener('pointerenter', handleEnter, { passive: true });
+      if (scrambleObserver) scrambleObserver.observe(element);
+      cleanupTasks.push(() => {
+        element.removeEventListener('pointerenter', handleEnter);
+        cancelAnimationFrame(Number(element.dataset.scrambleFrame || 0));
+        element.textContent = element.dataset.scrambleText;
+      });
+    });
+
+    const morph = $('[data-text-morph]');
+    let morphTimer = 0;
+    let morphIndex = 0;
+    let morphVisible = false;
+    const morphWords = morph?.dataset.morphWords?.split('|').map((word) => word.trim()).filter(Boolean) || [];
+
+    const stopMorph = () => {
+      window.clearTimeout(morphTimer);
+      morphTimer = 0;
+      window.gsap?.killTweensOf(morph);
+    };
+
+    const scheduleMorph = () => {
+      stopMorph();
+      if (!morph || morphWords.length < 2 || reducedMotion.matches || !morphVisible || document.hidden) return;
+      morphTimer = window.setTimeout(() => {
+        const swap = () => {
+          morphIndex = (morphIndex + 1) % morphWords.length;
+          morph.textContent = morphWords[morphIndex];
+          if (canAnimate()) {
+            window.gsap.fromTo(morph, { autoAlpha: 0, y: 10, clipPath: 'inset(100% 0 0 0)' }, {
+              autoAlpha: 1,
+              y: 0,
+              clipPath: 'inset(0% 0 0 0)',
+              duration: 0.48,
+              ease: 'power3.out',
+              clearProps: 'opacity,visibility,transform,clip-path',
+              onComplete: scheduleMorph
+            });
+          } else scheduleMorph();
+        };
+
+        if (canAnimate()) {
+          window.gsap.to(morph, {
+            autoAlpha: 0,
+            y: -9,
+            clipPath: 'inset(0 0 100% 0)',
+            duration: 0.28,
+            ease: 'power2.inOut',
+            onComplete: swap
+          });
+        } else swap();
+      }, 2600);
+    };
+
+    let morphObserver = null;
+    if (morph && morphWords.length > 1) {
+      if ('IntersectionObserver' in window) {
+        morphObserver = new IntersectionObserver(([entry]) => {
+          morphVisible = Boolean(entry?.isIntersecting);
+          if (morphVisible) scheduleMorph();
+          else stopMorph();
+        }, { threshold: 0.2 });
+        morphObserver.observe(morph);
+      } else {
+        morphVisible = true;
+        scheduleMorph();
+      }
+    }
+
+    const handleVisibility = () => {
+      if (document.hidden) stopMorph();
+      else scheduleMorph();
+    };
+    const handleReducedMotion = () => {
+      if (reducedMotion.matches) {
+        stopMorph();
+        if (morph && morphWords.length) morph.textContent = morphWords[0];
+        scrambleTargets.forEach((element) => { element.textContent = element.dataset.scrambleText; });
+      } else scheduleMorph();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    if ('addEventListener' in reducedMotion) reducedMotion.addEventListener('change', handleReducedMotion);
+
+    const handlePress = (event) => {
+      if (!finePointer.matches || reducedMotion.matches || event.button !== 0) return;
+      const target = event.target.closest('.button, .nav-resume, .compare-viewer-button, .media-trigger, .creative-tile > button');
+      if (!target) return;
+      const bounds = target.getBoundingClientRect();
+      const pulse = document.createElement('span');
+      pulse.className = 'press-pulse';
+      pulse.setAttribute('aria-hidden', 'true');
+      pulse.style.left = `${event.clientX - bounds.left}px`;
+      pulse.style.top = `${event.clientY - bounds.top}px`;
+      pulse.addEventListener('animationend', () => pulse.remove(), { once: true });
+      target.append(pulse);
+    };
+    document.addEventListener('pointerdown', handlePress);
+
+    kineticCleanup = () => {
+      scrambleObserver?.disconnect();
+      morphObserver?.disconnect();
+      stopMorph();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener('pointerdown', handlePress);
+      if ('removeEventListener' in reducedMotion) reducedMotion.removeEventListener('change', handleReducedMotion);
+      cleanupTasks.forEach((cleanup) => cleanup());
+      $$('.press-pulse').forEach((pulse) => pulse.remove());
+    };
+  }
+
   function initializeInlineMedia() {
-    $$('[data-viewer-item][data-media-ready="true"]').forEach((trigger) => {
+    $$('[data-viewer-item][data-media-ready="true"]:not([data-viewer-only])').forEach((trigger) => {
       const isVideo = trigger.dataset.mediaKind === 'video';
       const source = isVideo ? trigger.dataset.mediaPoster : trigger.dataset.mediaSrc;
       if (!source) return;
@@ -617,9 +820,19 @@
     if (!hero || !object) return;
 
     let bounds = null;
+    const grid = $('[data-field-layer="grid"]', object);
+    const orbitA = $('[data-field-layer="orbit-a"]', object);
+    const orbitB = $('[data-field-layer="orbit-b"]', object);
+    const particles = $('[data-field-layer="particles"]', object);
     const moveX = window.gsap.quickTo(object, 'x', { duration: 0.8, ease: 'power3.out' });
     const moveY = window.gsap.quickTo(object, 'y', { duration: 0.8, ease: 'power3.out' });
     const rotate = window.gsap.quickTo(object, 'rotation', { duration: 1, ease: 'power3.out' });
+    const gridX = grid ? window.gsap.quickTo(grid, 'x', { duration: 1.1, ease: 'power3.out' }) : null;
+    const gridY = grid ? window.gsap.quickTo(grid, 'y', { duration: 1.1, ease: 'power3.out' }) : null;
+    const orbitARotate = orbitA ? window.gsap.quickTo(orbitA, 'rotation', { duration: 1.25, ease: 'power3.out' }) : null;
+    const orbitBRotate = orbitB ? window.gsap.quickTo(orbitB, 'rotation', { duration: 1.4, ease: 'power3.out' }) : null;
+    const particlesX = particles ? window.gsap.quickTo(particles, 'x', { duration: 0.72, ease: 'power3.out' }) : null;
+    const particlesY = particles ? window.gsap.quickTo(particles, 'y', { duration: 0.72, ease: 'power3.out' }) : null;
 
     const cacheBounds = () => { bounds = hero.getBoundingClientRect(); };
     const handleMove = (event) => {
@@ -629,8 +842,24 @@
       moveX(x * 24);
       moveY(y * 18);
       rotate(x * 2.6);
+      gridX?.(x * -18);
+      gridY?.(y * -18);
+      orbitARotate?.(x * 12 + y * 4);
+      orbitBRotate?.(x * -9 + y * -5);
+      particlesX?.(x * 34);
+      particlesY?.(y * 30);
     };
-    const reset = () => { moveX(0); moveY(0); rotate(0); };
+    const reset = () => {
+      moveX(0);
+      moveY(0);
+      rotate(0);
+      gridX?.(0);
+      gridY?.(0);
+      orbitARotate?.(0);
+      orbitBRotate?.(0);
+      particlesX?.(0);
+      particlesY?.(0);
+    };
 
     hero.addEventListener('pointerenter', cacheBounds, { passive: true });
     hero.addEventListener('pointermove', handleMove, { passive: true });
@@ -643,6 +872,7 @@
       hero.removeEventListener('pointerleave', reset);
       window.removeEventListener('resize', cacheBounds);
       window.gsap?.set(object, { clearProps: 'x,y,rotation' });
+      window.gsap?.set([grid, orbitA, orbitB, particles].filter(Boolean), { clearProps: 'x,y,rotation' });
     };
   }
 
@@ -653,7 +883,7 @@
 
     const { gsap } = window;
     const cleanupTasks = [];
-    const surfaces = $$('.project-screen, .btm-frame, .comparison, .creative-tile > button');
+    const surfaces = $$('.project-screen, .btm-frame, .creative-tile > button');
 
     surfaces.forEach((surface) => {
       surface.classList.add('motion-surface');
@@ -697,7 +927,7 @@
       });
     });
 
-    $$('.button, .nav-resume, .project-visit, .case-toggle').forEach((control) => {
+    $$('.button, .nav-resume, .project-visit, .case-toggle, .compare-viewer-button').forEach((control) => {
       let bounds = null;
       const moveX = gsap.quickTo(control, 'x', { duration: 0.34, ease: 'power3.out' });
       const moveY = gsap.quickTo(control, 'y', { duration: 0.34, ease: 'power3.out' });
@@ -770,19 +1000,32 @@
         .from('.hero-lead', { autoAlpha: 0, y: 34, clipPath: 'inset(0 0 100% 0)', duration: 0.8 }, 1.24)
         .from('.hero-actions > *', { autoAlpha: 0, y: 26, scale: 0.96, duration: 0.68, stagger: 0.1 }, 1.42)
         .from('.hero-origin', { autoAlpha: 0, x: -34, duration: 0.62 }, 1.54)
+        .from('.hero-mode > *', { autoAlpha: 0, x: 22, duration: 0.56, stagger: 0.07 }, 1.02)
         .from('.studio-note', { autoAlpha: 0, y: 20, duration: 0.62 }, 1.02)
         .from('.discipline-list li', { autoAlpha: 0, x: 38, clipPath: 'inset(0 0 0 100%)', duration: 0.62, stagger: 0.07 }, 1.12)
         .from('.hero-object', { autoAlpha: 0, scale: 0.82, rotation: -10, duration: 1.15 }, 1.08)
         .from('.hero-geometry circle, .hero-geometry ellipse, .hero-geometry path', { strokeDasharray: 1, strokeDashoffset: 1, duration: 1.4, stagger: 0.1, ease: 'power2.inOut' }, 1.18)
-        .from('.object-code', { autoAlpha: 0, x: 18, duration: 0.54 }, 1.68)
+        .from('.object-code, .object-readout', { autoAlpha: 0, x: 18, duration: 0.54, stagger: 0.08 }, 1.68)
         .from('.hand-note', { autoAlpha: 0, y: 16, rotation: -3, duration: 0.7 }, 1.72)
         .from('.hero-side-label', { autoAlpha: 0, y: 24, duration: 0.58 }, 1.78)
         .from('.motion-scroll-cue', { autoAlpha: 0, x: -24, duration: 0.62 }, 1.88);
 
       heroLoop = gsap.timeline({ repeat: -1, yoyo: true, paused: document.hidden })
-        .to('.geometry-dot', { x: -24, y: -16, duration: 3.8, ease: 'power2.inOut' })
-        .to('.geometry-accent', { opacity: 0.45, duration: 2.8, ease: 'power2.inOut' }, 0)
-        .to('.hero-geometry ellipse', { rotation: 7, transformOrigin: '50% 50%', duration: 8, ease: 'sine.inOut' }, 0);
+        .to('.geometry-dot', { x: (index) => index % 2 ? 18 : -22, y: (index) => index % 2 ? -13 : 16, duration: 4.4, stagger: 0.12, ease: 'sine.inOut' }, 0)
+        .to('.geometry-accent', { opacity: 0.38, duration: 3.2, ease: 'sine.inOut' }, 0)
+        .to('.geometry-orbit-a ellipse', { rotation: (index) => index % 2 ? -6 : 7, transformOrigin: '210px 210px', duration: 9, stagger: 0.18, ease: 'sine.inOut' }, 0)
+        .to('.geometry-orbit-b ellipse', { rotation: (index) => index % 2 ? 5 : -8, transformOrigin: '210px 210px', duration: 10.5, stagger: 0.2, ease: 'sine.inOut' }, 0)
+        .to('.geometry-core', { scale: 1.06, transformOrigin: '210px 210px', duration: 4.8, ease: 'sine.inOut' }, 0);
+
+      ScrollTrigger.create({
+        trigger: '.hero',
+        start: 'top bottom',
+        end: 'bottom top',
+        onEnter: () => { heroVisible = true; if (!document.hidden) heroLoop?.resume(); },
+        onEnterBack: () => { heroVisible = true; if (!document.hidden) heroLoop?.resume(); },
+        onLeave: () => { heroVisible = false; heroLoop?.pause(); },
+        onLeaveBack: () => { heroVisible = false; heroLoop?.pause(); }
+      });
 
       motionMedia = gsap.matchMedia();
       motionMedia.add({ desktop: '(min-width: 821px)', mobile: '(max-width: 820px)' }, (context) => {
@@ -819,7 +1062,7 @@
         });
 
         $$('[data-motion-group]').forEach((group, index) => {
-          if (group.classList.contains('rodociclo-stage') || group.classList.contains('biketech-gallery') || group.classList.contains('creative-grid') || group.classList.contains('education-list') || group.classList.contains('language-list') || group.classList.contains('method') || group.classList.contains('toolset') || group.classList.contains('contact-layout') || group.hasAttribute('data-timeline')) return;
+          if (group.classList.contains('rodociclo-stage') || group.classList.contains('biketech-gallery') || group.classList.contains('creative-grid') || group.classList.contains('morph-comparison') || group.classList.contains('education-list') || group.classList.contains('language-list') || group.classList.contains('method') || group.classList.contains('toolset') || group.classList.contains('contact-layout') || group.hasAttribute('data-timeline')) return;
           const items = [...group.children].filter((child) => !child.matches('.heading-rule, [data-split-reveal], [data-section-number], .about-annotation, .project-index-large'));
           if (!items.length) return;
           const horizontal = index % 4 === 0 ? -distance : index % 4 === 1 ? distance : 0;
@@ -1047,14 +1290,50 @@
           scrollTrigger: { trigger: '.creative-grid', start: 'top 84%', once: true }
         });
 
-        gsap.to('.before-after .motion-shutter i', {
-          scaleX: 0,
-          transformOrigin: (index) => index % 2 ? 'right center' : 'left center',
-          duration: 0.68,
-          stagger: 0.055,
-          ease: 'power3.inOut',
-          scrollTrigger: { trigger: '.before-after', start: 'top 84%', once: true }
+        gsap.from('.morph-comparison-header > *', {
+          autoAlpha: 0,
+          x: (index) => desktop ? (index ? distance : -distance) : 0,
+          y: desktop ? 0 : 20,
+          duration: desktop ? 0.82 : 0.58,
+          stagger: 0.08,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.morph-comparison', start: 'top 88%', once: true }
         });
+
+        gsap.from('.morph-comparison figcaption > *', {
+          autoAlpha: 0,
+          y: 18,
+          duration: 0.56,
+          stagger: 0.08,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.morph-comparison', start: 'top 66%', once: true }
+        });
+
+        if (desktop) {
+          gsap.fromTo('.morph-comparison-stage', {
+            scale: 0.88,
+            clipPath: 'inset(8% 6% 8% 6% round 34px 14px 34px 14px)'
+          }, {
+            scale: 1,
+            clipPath: 'inset(0% 0% 0% 0% round 30px 8px 30px 8px)',
+            ease: 'none',
+            scrollTrigger: {
+              trigger: '.morph-comparison',
+              start: 'top 94%',
+              end: 'top 44%',
+              scrub: 0.5
+            }
+          });
+        } else {
+          gsap.from('.morph-comparison-stage', {
+            autoAlpha: 0,
+            scale: 0.96,
+            clipPath: 'inset(6% 5% 6% 5% round 22px)',
+            duration: 0.72,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: '.morph-comparison', start: 'top 88%', once: true }
+          });
+        }
 
         gsap.from('[data-timeline-line]', {
           scaleY: 0,
@@ -1319,7 +1598,7 @@
     document.addEventListener('visibilitychange', () => {
       root.classList.toggle('is-tab-hidden', document.hidden);
       if (document.hidden) heroLoop?.pause();
-      else heroLoop?.resume();
+      else if (heroVisible) heroLoop?.resume();
     });
 
     const handleMotionPreference = () => {
@@ -1329,7 +1608,11 @@
     if ('addEventListener' in reducedMotion) reducedMotion.addEventListener('change', handleMotionPreference);
     else if ('addListener' in reducedMotion) reducedMotion.addListener(handleMotionPreference);
 
-    window.addEventListener('pagehide', destroyMotion, { once: true });
+    window.addEventListener('pagehide', () => {
+      kineticCleanup?.();
+      kineticCleanup = null;
+      destroyMotion();
+    }, { once: true });
   }
 
   prepareTextReveals();
@@ -1340,6 +1623,8 @@
   initializeNavigation();
   initializeCaseStudies();
   initializeToolsetInteractions();
+  initializeComparisons();
+  initializeKineticDetails();
   initializeInlineMedia();
   initializeMediaViewer();
   initializeMotion();
