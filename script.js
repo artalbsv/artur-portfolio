@@ -42,7 +42,7 @@
       const nextTheme = theme === 'light' ? 'light' : 'dark';
       root.dataset.theme = nextTheme;
       if (persist) safeStorage.set(nextTheme);
-      if (themeColor) themeColor.content = nextTheme === 'light' ? '#F2EFE9' : '#050505';
+      if (themeColor) themeColor.content = nextTheme === 'light' ? '#F5F5F7' : '#050505';
       if (toggle) {
         const isDark = nextTheme === 'dark';
         toggle.setAttribute('aria-checked', String(isDark));
@@ -820,7 +820,7 @@
 
         $$('[data-motion-group]').forEach((group, index) => {
           if (group.classList.contains('rodociclo-stage') || group.classList.contains('biketech-gallery') || group.classList.contains('creative-grid') || group.classList.contains('education-list') || group.classList.contains('language-list') || group.classList.contains('method') || group.classList.contains('toolset') || group.classList.contains('contact-layout') || group.hasAttribute('data-timeline')) return;
-          const items = [...group.children].filter((child) => !child.matches('.heading-rule, [data-split-reveal], .about-annotation'));
+          const items = [...group.children].filter((child) => !child.matches('.heading-rule, [data-split-reveal], [data-section-number], .about-annotation, .project-index-large'));
           if (!items.length) return;
           const horizontal = index % 4 === 0 ? -distance : index % 4 === 1 ? distance : 0;
           const vertical = horizontal ? 0 : distance * (index % 2 ? 0.45 : 0.7);

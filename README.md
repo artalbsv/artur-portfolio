@@ -91,7 +91,7 @@ html[data-theme="light"] { /* light theme */ }
 
 The accessible navigation toggle saves the selection under `artur-portfolio-theme` in `localStorage`. On a first visit, the page respects `prefers-color-scheme`. The browser `theme-color` metadata is updated whenever the theme changes.
 
-When changing colors, verify text, muted text, controls, focus indicators and borders in both themes. Keep red as the primary action color and purple as a secondary accent.
+When changing colors, verify text, muted text, controls, focus indicators and borders in both themes. The interface uses an Apple/Nike-inspired near-monochrome system: red is the only expressive accent, while neutral steel gray supports secondary details. Colors inside Artur's real artwork are preserved.
 
 ## Media source and output mapping
 
