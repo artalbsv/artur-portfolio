@@ -54,6 +54,7 @@ The animation system in `script.js` is organized into:
 - one `gsap.matchMedia()` split for desktop and mobile distances;
 - a short non-blocking page curtain, layered hero entrance and geometric line drawing;
 - a transform-only spatial SVG field with independent pointer-reactive layers, paused outside the hero;
+- a 36-cell proximity matrix that reacts only on fine-pointer desktops and remains static or hidden on smaller devices;
 - one short, viewport-triggered character scramble system and a single off-screen-paused text morph;
 - semantic word reveals with temporary clip paths that never crop the final typography;
 - hand-drawn SVG accent strokes instead of full-width decorative underlines;
@@ -63,6 +64,8 @@ The animation system in `script.js` is organized into:
 - enhanced case-study and full-ratio media-viewer transitions;
 - restrained desktop-only depth, pointer spotlight and magnetic feedback for primary controls;
 - a line-style section spine, scroll-expanded before/after stage, specular control highlights and one-shot press feedback;
+- a scroll-driven kinetic type belt, vector process constellation, discipline word morph and layered contact wave field;
+- a protected experience timeline whose markers occupy a dedicated rail and whose content reveals vertically without crossing it;
 - cleanup through `revert()` and listener removal when motion preferences change or the page is left.
 
 The expanded motion language still uses only the self-hosted GSAP runtime already in the repository. React, WebGL and additional animation runtimes are intentionally unnecessary for these effects, keeping the portfolio directly deployable as static files.

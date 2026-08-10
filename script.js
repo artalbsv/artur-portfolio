@@ -198,6 +198,16 @@
 
     const hero = $('[data-hero]');
     if (hero) {
+      const studio = $('.hero-studio', hero);
+      if (studio) {
+        const matrix = document.createElement('span');
+        matrix.className = 'kinetic-matrix';
+        matrix.setAttribute('aria-hidden', 'true');
+        matrix.setAttribute('data-kinetic-matrix', '');
+        matrix.innerHTML = '<i></i>'.repeat(36);
+        studio.prepend(matrix);
+      }
+
       const cue = document.createElement('span');
       cue.className = 'motion-scroll-cue';
       cue.setAttribute('aria-hidden', 'true');
@@ -428,9 +438,55 @@
   }
 
   function initializeToolsetInteractions() {
-    $$('.toolset details').forEach((details) => {
+    const toolset = $('.toolset');
+    if (!toolset) return;
+    const detailsItems = $$('details', toolset);
+    const stageWord = $('[data-toolset-word]', toolset);
+    const stageIndex = $('[data-toolset-index]', toolset);
+    let activeIndex = -1;
+
+    const disciplineName = (details) => $('summary', details)?.childNodes
+      ? [...$('summary', details).childNodes].find((node) => node.nodeType === Node.TEXT_NODE)?.textContent.trim() || 'Discipline'
+      : 'Discipline';
+
+    const activate = (details, index) => {
+      if (!details || index === activeIndex) return;
+      activeIndex = index;
+      detailsItems.forEach((item, itemIndex) => item.classList.toggle('is-active', itemIndex === index));
+      const nextWord = disciplineName(details).toUpperCase();
+      if (stageIndex) stageIndex.textContent = `DISCIPLINE / ${String(index + 1).padStart(2, '0')}`;
+
+      if (!stageWord) return;
+      if (canAnimate()) {
+        window.gsap.killTweensOf(stageWord);
+        window.gsap.to(stageWord, {
+          autoAlpha: 0,
+          yPercent: -52,
+          skewX: -5,
+          duration: 0.22,
+          ease: 'power2.in',
+          onComplete: () => {
+            stageWord.textContent = nextWord;
+            window.gsap.fromTo(stageWord, { autoAlpha: 0, yPercent: 60, skewX: 6 }, {
+              autoAlpha: 1,
+              yPercent: 0,
+              skewX: 0,
+              duration: 0.48,
+              ease: 'power3.out',
+              clearProps: 'opacity,visibility,transform'
+            });
+          }
+        });
+      } else stageWord.textContent = nextWord;
+    };
+
+    detailsItems.forEach((details, index) => {
+      details.addEventListener('pointerenter', () => activate(details, index), { passive: true });
+      details.addEventListener('focusin', () => activate(details, index));
       details.addEventListener('toggle', () => {
-        if (!details.open || !canAnimate()) return;
+        if (!details.open) return;
+        activate(details, index);
+        if (!canAnimate()) return;
         const items = $$('li', details);
         window.gsap.from(items, {
           autoAlpha: 0,
@@ -442,6 +498,8 @@
         });
       });
     });
+
+    activate(detailsItems.find((details) => details.open) || detailsItems[0], Math.max(0, detailsItems.findIndex((details) => details.open)));
   }
 
   function initializeComparisons() {
@@ -883,6 +941,112 @@
 
     const { gsap } = window;
     const cleanupTasks = [];
+
+    const matrix = $('[data-kinetic-matrix]');
+    const matrixHost = matrix?.closest('.hero-studio');
+    if (matrix && matrixHost) {
+      const cells = $$('i', matrix);
+      let cellCenters = [];
+      let matrixFrame = 0;
+      let pointerX = 0;
+      let pointerY = 0;
+
+      const cacheCellCenters = () => {
+        cellCenters = cells.map((cell) => {
+          const bounds = cell.getBoundingClientRect();
+          return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+        });
+      };
+
+      const renderMatrix = () => {
+        cells.forEach((cell, index) => {
+          const center = cellCenters[index];
+          if (!center) return;
+          const dx = pointerX - center.x;
+          const dy = pointerY - center.y;
+          const influence = Math.max(0, 1 - Math.hypot(dx, dy) / 220);
+          const lift = influence * -12;
+          const rotation = Math.max(-5, Math.min(5, dx * 0.025)) * influence;
+          cell.style.transform = `translate3d(0, ${lift}px, ${influence * 30}px) scale(${1 + influence * 0.085}) rotateY(${rotation}deg)`;
+          cell.style.opacity = String(0.26 + influence * 0.68);
+          cell.style.borderColor = influence > 0.56 ? 'var(--red)' : '';
+        });
+        matrixFrame = 0;
+      };
+
+      const handleMatrixMove = (event) => {
+        pointerX = event.clientX;
+        pointerY = event.clientY;
+        if (!matrixFrame) matrixFrame = requestAnimationFrame(renderMatrix);
+      };
+
+      const resetMatrix = () => {
+        cancelAnimationFrame(matrixFrame);
+        matrixFrame = 0;
+        cells.forEach((cell) => {
+          cell.style.removeProperty('transform');
+          cell.style.removeProperty('opacity');
+          cell.style.removeProperty('border-color');
+        });
+      };
+
+      matrixHost.addEventListener('pointerenter', cacheCellCenters, { passive: true });
+      matrixHost.addEventListener('pointermove', handleMatrixMove, { passive: true });
+      matrixHost.addEventListener('pointerleave', resetMatrix, { passive: true });
+      window.addEventListener('resize', cacheCellCenters, { passive: true });
+      cleanupTasks.push(() => {
+        matrixHost.removeEventListener('pointerenter', cacheCellCenters);
+        matrixHost.removeEventListener('pointermove', handleMatrixMove);
+        matrixHost.removeEventListener('pointerleave', resetMatrix);
+        window.removeEventListener('resize', cacheCellCenters);
+        resetMatrix();
+      });
+    }
+
+    $$('.editorial-heading h2[data-split-reveal], .about-statement h2[data-split-reveal], .credentials-intro h2[data-split-reveal], .contact-layout h2[data-split-reveal]').forEach((heading) => {
+      const words = $$('.motion-word > span', heading);
+      if (!words.length) return;
+      let headingBounds = null;
+      const wordMotion = words.map((word) => ({
+        word,
+        y: gsap.quickTo(word, 'y', { duration: 0.44, ease: 'power3.out' }),
+        rotation: gsap.quickTo(word, 'rotation', { duration: 0.5, ease: 'power3.out' }),
+        scaleY: gsap.quickTo(word, 'scaleY', { duration: 0.5, ease: 'power3.out' })
+      }));
+
+      const cacheHeadingBounds = () => { headingBounds = heading.getBoundingClientRect(); };
+      const handleHeadingMove = (event) => {
+        if (!headingBounds) cacheHeadingBounds();
+        const cursor = (event.clientX - headingBounds.left) / Math.max(1, headingBounds.width);
+        wordMotion.forEach((motion, index) => {
+          const wordPosition = words.length === 1 ? 0.5 : index / (words.length - 1);
+          const influence = Math.max(0, 1 - Math.abs(cursor - wordPosition) * 2.4);
+          motion.y(influence * -7);
+          motion.rotation((cursor - wordPosition) * influence * 2.8);
+          motion.scaleY(1 + influence * 0.045);
+        });
+      };
+      const resetHeading = () => {
+        headingBounds = null;
+        wordMotion.forEach((motion) => {
+          motion.y(0);
+          motion.rotation(0);
+          motion.scaleY(1);
+        });
+      };
+
+      heading.addEventListener('pointerenter', cacheHeadingBounds, { passive: true });
+      heading.addEventListener('pointermove', handleHeadingMove, { passive: true });
+      heading.addEventListener('pointerleave', resetHeading, { passive: true });
+      cleanupTasks.push(() => {
+        heading.removeEventListener('pointerenter', cacheHeadingBounds);
+        heading.removeEventListener('pointermove', handleHeadingMove);
+        heading.removeEventListener('pointerleave', resetHeading);
+        gsap.killTweensOf(words);
+        gsap.set(words, { clearProps: 'y,rotation,scaleY' });
+      });
+    });
+
     const surfaces = $$('.project-screen, .btm-frame, .creative-tile > button');
 
     surfaces.forEach((surface) => {
@@ -1003,6 +1167,7 @@
         .from('.hero-mode > *', { autoAlpha: 0, x: 22, duration: 0.56, stagger: 0.07 }, 1.02)
         .from('.studio-note', { autoAlpha: 0, y: 20, duration: 0.62 }, 1.02)
         .from('.discipline-list li', { autoAlpha: 0, x: 38, clipPath: 'inset(0 0 0 100%)', duration: 0.62, stagger: 0.07 }, 1.12)
+        .from('.kinetic-matrix i', { autoAlpha: 0, scale: 0.76, rotationX: 12, duration: 0.7, stagger: { each: 0.012, grid: [6, 6], from: 'center' } }, 1.02)
         .from('.hero-object', { autoAlpha: 0, scale: 0.82, rotation: -10, duration: 1.15 }, 1.08)
         .from('.hero-geometry circle, .hero-geometry ellipse, .hero-geometry path', { strokeDasharray: 1, strokeDashoffset: 1, duration: 1.4, stagger: 0.1, ease: 'power2.inOut' }, 1.18)
         .from('.object-code, .object-readout', { autoAlpha: 0, x: 18, duration: 0.54, stagger: 0.08 }, 1.68)
@@ -1108,6 +1273,19 @@
             ease: 'power3.out',
             scrollTrigger: { trigger: number, start: 'top 92%', once: true }
           });
+        });
+
+        gsap.fromTo('[data-kinetic-belt-track]', {
+          xPercent: desktop ? -6 : -2
+        }, {
+          xPercent: desktop ? -38 : -22,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: '[data-kinetic-belt]',
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: desktop ? 0.55 : 0.28
+          }
         });
 
         gsap.from('.project-kicker span', {
@@ -1337,15 +1515,16 @@
 
         gsap.from('[data-timeline-line]', {
           scaleY: 0,
-          duration: 1.15,
+          duration: 1.3,
           ease: 'power2.inOut',
           scrollTrigger: { trigger: '[data-timeline]', start: 'top 82%', once: true }
         });
         gsap.from('[data-timeline] article', {
           autoAlpha: 0,
-          x: desktop ? -50 : -24,
-          duration: 0.74,
-          stagger: 0.14,
+          y: desktop ? 42 : 26,
+          clipPath: 'inset(0 0 100% 0)',
+          duration: desktop ? 0.86 : 0.62,
+          stagger: desktop ? 0.16 : 0.11,
           ease: 'power3.out',
           scrollTrigger: { trigger: '[data-timeline]', start: 'top 82%', once: true }
         });
@@ -1368,6 +1547,26 @@
           stagger: 0.11,
           ease: 'back.out(1.55)',
           scrollTrigger: { trigger: '.method-list', start: 'top 80%', once: true }
+        });
+
+        gsap.from('[data-method-path]', {
+          strokeDasharray: 1,
+          strokeDashoffset: 1,
+          duration: 1.3,
+          stagger: 0.16,
+          ease: 'power2.inOut',
+          scrollTrigger: { trigger: '[data-method-constellation]', start: 'top 86%', once: true }
+        });
+
+        gsap.from('[data-method-dot]', {
+          autoAlpha: 0,
+          scale: 0,
+          transformOrigin: 'center',
+          duration: 0.52,
+          stagger: 0.1,
+          delay: 0.3,
+          ease: 'back.out(1.8)',
+          scrollTrigger: { trigger: '[data-method-constellation]', start: 'top 86%', once: true }
         });
 
         gsap.from('.method-label', {
@@ -1421,6 +1620,24 @@
           scrollTrigger: { trigger: '.toolset', start: 'top 82%', once: true }
         });
 
+        gsap.from('.toolset-stage', {
+          autoAlpha: 0,
+          scale: desktop ? 0.94 : 0.98,
+          clipPath: 'inset(0 100% 0 0)',
+          duration: 0.88,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.toolset', start: 'top 86%', once: true }
+        });
+
+        gsap.from('.toolset-stage span', {
+          yPercent: 74,
+          skewX: 7,
+          duration: 0.82,
+          delay: 0.18,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.toolset', start: 'top 86%', once: true }
+        });
+
         gsap.from('.toolset summary span, .toolset summary i', {
           autoAlpha: 0,
           scale: 0,
@@ -1457,6 +1674,17 @@
           duration: 0.8,
           ease: 'power3.out',
           scrollTrigger: { trigger: '.contact-layout', start: 'top 80%', once: true }
+        });
+
+        gsap.from('.contact-wave-field i', {
+          autoAlpha: 0,
+          scale: 0.72,
+          rotation: (index) => index % 2 ? -18 : 18,
+          transformOrigin: 'center',
+          duration: desktop ? 1.1 : 0.72,
+          stagger: 0.09,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.contact', start: 'top 84%', once: true }
         });
 
         gsap.from('.contact-details > *, .contact-actions > *', {
@@ -1536,6 +1764,13 @@
             xPercent: -2.5,
             ease: 'none',
             scrollTrigger: { trigger: '.contact', start: 'top bottom', end: 'bottom top', scrub: 0.65 }
+          });
+
+          gsap.to('.contact-wave-field', {
+            rotation: 8,
+            scale: 1.08,
+            ease: 'none',
+            scrollTrigger: { trigger: '.contact', start: 'top bottom', end: 'bottom top', scrub: 0.6 }
           });
 
           const galleryDriftUp = gsap.utils.toArray('.tile-tall, .tile-small, .tile-reel-three');
