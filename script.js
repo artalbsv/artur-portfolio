@@ -120,15 +120,93 @@
       });
 
       $$('em', heading).forEach((emphasis) => {
-        const brush = document.createElement('span');
-        brush.className = 'motion-brush';
+        const brush = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        brush.setAttribute('class', 'motion-brush');
         brush.setAttribute('aria-hidden', 'true');
+        brush.setAttribute('viewBox', '0 0 120 20');
+        brush.setAttribute('preserveAspectRatio', 'none');
+        brush.innerHTML = '<path pathLength="1" d="M2 14C19 3 42 17 62 9S98 5 118 12"></path><path pathLength="1" d="M24 18C43 11 61 17 88 12"></path>';
         emphasis.append(brush);
       });
 
       heading.setAttribute('aria-label', accessibleLabel);
       heading.dataset.motionSplit = 'true';
     });
+  }
+
+  function prepareHeroWords() {
+    $$('.hero-line > span').forEach((line) => {
+      if (line.dataset.heroSplit === 'true') return;
+      const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT, {
+        acceptNode: (node) => node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+      });
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+      textNodes.forEach((node) => {
+        const fragment = document.createDocumentFragment();
+        node.nodeValue.split(/(\s+)/).forEach((part) => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) {
+            fragment.append(document.createTextNode(part));
+            return;
+          }
+          const word = document.createElement('span');
+          word.className = 'hero-word';
+          word.textContent = part;
+          fragment.append(word);
+        });
+        node.replaceWith(fragment);
+      });
+
+      line.dataset.heroSplit = 'true';
+    });
+  }
+
+  function prepareMotionDecorations() {
+    if (document.body.dataset.motionDecorated === 'true') return;
+
+    const intro = document.createElement('div');
+    intro.className = 'motion-intro';
+    intro.setAttribute('aria-hidden', 'true');
+    intro.innerHTML = '<i></i><i></i><i></i><span class="motion-intro-mark">AS / PORTFOLIO</span>';
+    document.body.prepend(intro);
+
+    $$('[data-section]:not(.hero)').forEach((section) => {
+      const rail = document.createElement('span');
+      rail.className = 'motion-section-rail';
+      rail.setAttribute('aria-hidden', 'true');
+      rail.innerHTML = '<i></i>';
+      section.prepend(rail);
+    });
+
+    const hero = $('[data-hero]');
+    if (hero) {
+      const cue = document.createElement('span');
+      cue.className = 'motion-scroll-cue';
+      cue.setAttribute('aria-hidden', 'true');
+      cue.innerHTML = '<i></i><span>Scroll to explore / 01—07</span>';
+      hero.append(cue);
+    }
+
+    $$('.hero-geometry circle, .hero-geometry ellipse, .hero-geometry path').forEach((shape) => {
+      shape.setAttribute('pathLength', '1');
+    });
+
+    $$('[data-viewer-item]').forEach((trigger) => {
+      const shutter = document.createElement('span');
+      shutter.className = 'motion-shutter';
+      shutter.setAttribute('aria-hidden', 'true');
+      shutter.innerHTML = '<i></i><i></i><i></i>';
+      trigger.append(shutter);
+
+      const orbit = document.createElement('span');
+      orbit.className = 'media-orbit';
+      orbit.setAttribute('aria-hidden', 'true');
+      trigger.append(orbit);
+    });
+
+    document.body.dataset.motionDecorated = 'true';
   }
 
   function initializeNavigation() {
@@ -294,6 +372,14 @@
               window.portfolioRefreshScroll?.();
             }
           });
+          window.gsap.from($$('.case-sequence li', panel), {
+            autoAlpha: 0,
+            x: (index) => index % 2 ? 28 : -28,
+            duration: 0.54,
+            stagger: 0.055,
+            delay: 0.16,
+            ease: 'power3.out'
+          });
         } else {
           window.portfolioRefreshScroll?.();
         }
@@ -318,6 +404,23 @@
       toggle.addEventListener('click', () => {
         if (toggle.getAttribute('aria-expanded') === 'true') closePanel();
         else openPanel();
+      });
+    });
+  }
+
+  function initializeToolsetInteractions() {
+    $$('.toolset details').forEach((details) => {
+      details.addEventListener('toggle', () => {
+        if (!details.open || !canAnimate()) return;
+        const items = $$('li', details);
+        window.gsap.from(items, {
+          autoAlpha: 0,
+          x: -16,
+          duration: 0.4,
+          stagger: 0.045,
+          ease: 'power3.out',
+          overwrite: true
+        });
       });
     });
   }
@@ -444,11 +547,18 @@
       inertSurfaces.forEach((surface) => { surface.inert = true; });
 
       if (canAnimate()) {
-        window.gsap.fromTo($('.viewer-panel', viewer), { autoAlpha: 0, y: 26, scale: 0.985 }, {
-          autoAlpha: 1, y: 0, scale: 1, duration: 0.42, ease: 'power3.out'
-        });
+        const viewerTimeline = window.gsap.timeline();
+        viewerTimeline
+          .fromTo($('.viewer-backdrop', viewer), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.28, ease: 'power2.out' }, 0)
+          .fromTo($('.viewer-panel', viewer), { autoAlpha: 0, y: 34, scale: 0.965, rotationX: 3 }, {
+            autoAlpha: 1, y: 0, scale: 1, rotationX: 0, duration: 0.48, ease: 'power3.out'
+          }, 0.04)
+          .from($$('.viewer-panel > header > *', viewer), { autoAlpha: 0, y: -12, duration: 0.36, stagger: 0.06, ease: 'power3.out' }, 0.18)
+          .from($('.viewer-stage > *', viewer), { autoAlpha: 0, scale: 0.96, clipPath: 'inset(8% 8% 8% 8%)', duration: 0.52, ease: 'power3.out' }, 0.16)
+          .call(() => closeButton?.focus({ preventScroll: true }), null, 0.58);
+      } else {
+        closeButton?.focus({ preventScroll: true });
       }
-      requestAnimationFrame(() => closeButton?.focus());
     };
 
     const closeViewer = () => {
@@ -475,11 +585,7 @@
     $$('[data-viewer-close]', viewer).forEach((control) => control.addEventListener('click', closeViewer));
 
     viewer.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        closeViewer();
-        return;
-      }
+      if (event.key === 'Escape') return;
       if (event.key !== 'Tab') return;
       const focusable = focusableElements();
       if (!focusable.length) return;
@@ -492,6 +598,12 @@
         event.preventDefault();
         first.focus();
       }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (viewer.hidden || !['Escape', 'Esc'].includes(event.key)) return;
+      event.preventDefault();
+      closeViewer();
     });
   }
 
@@ -639,20 +751,33 @@
     motionContext = gsap.context(() => {
       const heroTimeline = gsap.timeline({ defaults: { ease: 'power3.out' } });
       heroTimeline
-        .from('.nav-shell', { autoAlpha: 0, y: -22, scale: 0.985, duration: 0.78 }, 0)
-        .from('.hero-rules i', { scaleY: 0, transformOrigin: 'top', duration: 1.1, stagger: 0.08 }, 0.05)
-        .from('.hero-section-number', { autoAlpha: 0, x: -28, duration: 0.58 }, 0.12)
-        .from('.eyebrow', { autoAlpha: 0, y: 24, duration: 0.65 }, 0.2)
-        .from('.hero-line > span', { yPercent: 108, duration: 1.05, stagger: 0.08 }, '-=0.42')
-        .from('.hero-lead', { autoAlpha: 0, y: 34, duration: 0.8 }, '-=0.65')
-        .from('.hero-actions > *', { autoAlpha: 0, y: 26, duration: 0.68, stagger: 0.1 }, '-=0.54')
-        .from('.hero-origin', { autoAlpha: 0, x: -34, duration: 0.62 }, '-=0.42')
-        .from('.studio-note', { autoAlpha: 0, y: 20, duration: 0.62 }, '-=0.68')
-        .from('.discipline-list li', { autoAlpha: 0, x: 38, duration: 0.62, stagger: 0.07 }, '-=0.72')
-        .from('.hero-object', { autoAlpha: 0, scale: 0.88, rotation: -7, duration: 1.1 }, '-=0.8')
-        .from('.object-code', { autoAlpha: 0, x: 18, duration: 0.54 }, '-=0.68')
-        .from('.hand-note', { autoAlpha: 0, y: 16, duration: 0.7 }, '-=0.42')
-        .from('.hero-side-label', { autoAlpha: 0, y: 24, duration: 0.58 }, '-=0.5');
+        .fromTo('.motion-intro-mark', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.36 }, 0)
+        .to('.motion-intro-mark', { autoAlpha: 0, y: -10, duration: 0.28 }, 0.42)
+        .to('.motion-intro > i', { scaleY: 0, duration: 0.78, stagger: 0.07, ease: 'power3.inOut' }, 0.5)
+        .set('.motion-intro', { autoAlpha: 0 }, 1.36)
+        .fromTo('.nav-shell', { autoAlpha: 0, y: -22, scale: 0.985 }, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.78,
+          clearProps: 'transform,opacity,visibility'
+        }, 0.64)
+        .from('.hero-rules i', { scaleY: 0, transformOrigin: 'top', duration: 1.1, stagger: 0.08 }, 0.68)
+        .from('.hero-section-number', { autoAlpha: 0, x: -28, rotation: -4, duration: 0.58 }, 0.76)
+        .from('.eyebrow', { autoAlpha: 0, y: 24, scaleX: 1.04, transformOrigin: 'left center', duration: 0.72 }, 0.82)
+        .from('.hero-line', { clipPath: 'inset(0 0 100% 0)', duration: 0.96, stagger: 0.08 }, 0.86)
+        .from('.hero-word', { autoAlpha: 0, yPercent: 96, rotationZ: 2.5, duration: 0.92, stagger: 0.045 }, 0.9)
+        .from('.hero-lead', { autoAlpha: 0, y: 34, clipPath: 'inset(0 0 100% 0)', duration: 0.8 }, 1.24)
+        .from('.hero-actions > *', { autoAlpha: 0, y: 26, scale: 0.96, duration: 0.68, stagger: 0.1 }, 1.42)
+        .from('.hero-origin', { autoAlpha: 0, x: -34, duration: 0.62 }, 1.54)
+        .from('.studio-note', { autoAlpha: 0, y: 20, duration: 0.62 }, 1.02)
+        .from('.discipline-list li', { autoAlpha: 0, x: 38, clipPath: 'inset(0 0 0 100%)', duration: 0.62, stagger: 0.07 }, 1.12)
+        .from('.hero-object', { autoAlpha: 0, scale: 0.82, rotation: -10, duration: 1.15 }, 1.08)
+        .from('.hero-geometry circle, .hero-geometry ellipse, .hero-geometry path', { strokeDasharray: 1, strokeDashoffset: 1, duration: 1.4, stagger: 0.1, ease: 'power2.inOut' }, 1.18)
+        .from('.object-code', { autoAlpha: 0, x: 18, duration: 0.54 }, 1.68)
+        .from('.hand-note', { autoAlpha: 0, y: 16, rotation: -3, duration: 0.7 }, 1.72)
+        .from('.hero-side-label', { autoAlpha: 0, y: 24, duration: 0.58 }, 1.78)
+        .from('.motion-scroll-cue', { autoAlpha: 0, x: -24, duration: 0.62 }, 1.88);
 
       heroLoop = gsap.timeline({ repeat: -1, yoyo: true, paused: document.hidden })
         .to('.geometry-dot', { x: -24, y: -16, duration: 3.8, ease: 'power2.inOut' })
@@ -668,20 +793,25 @@
           const words = $$('.motion-word > span', heading);
           if (!words.length) return;
           gsap.from(words, {
-            yPercent: 112,
-            rotationX: desktop ? (headingIndex % 2 ? 14 : -14) : 0,
-            duration: desktop ? 0.94 : 0.66,
+            autoAlpha: 0,
+            yPercent: desktop ? 88 : 54,
+            rotationX: desktop ? (headingIndex % 2 ? 18 : -18) : 0,
+            rotationZ: desktop ? (headingIndex % 2 ? 1.2 : -1.2) : 0,
+            clipPath: 'inset(100% 0 0 0)',
+            duration: desktop ? 1.02 : 0.68,
             stagger: desktop ? 0.045 : 0.028,
             ease: 'power3.out',
             scrollTrigger: { trigger: heading, start: 'top 90%', once: true }
           });
 
-          const brush = $('.motion-brush', heading);
-          if (brush) {
-            gsap.from(brush, {
-              scaleX: 0,
-              duration: 0.82,
-              delay: 0.18,
+          const brushPaths = $$('.motion-brush path', heading);
+          if (brushPaths.length) {
+            gsap.from(brushPaths, {
+              strokeDasharray: 1,
+              strokeDashoffset: 1,
+              duration: 0.9,
+              stagger: 0.1,
+              delay: 0.26,
               ease: 'power2.inOut',
               scrollTrigger: { trigger: heading, start: 'top 90%', once: true }
             });
@@ -689,18 +819,31 @@
         });
 
         $$('[data-motion-group]').forEach((group, index) => {
-          if (group.classList.contains('rodociclo-stage') || group.classList.contains('biketech-gallery') || group.classList.contains('creative-grid') || group.classList.contains('education-list') || group.classList.contains('language-list') || group.hasAttribute('data-timeline')) return;
-          const items = [...group.children].filter((child) => !child.matches('.heading-rule, [data-split-reveal]'));
+          if (group.classList.contains('rodociclo-stage') || group.classList.contains('biketech-gallery') || group.classList.contains('creative-grid') || group.classList.contains('education-list') || group.classList.contains('language-list') || group.classList.contains('method') || group.classList.contains('toolset') || group.classList.contains('contact-layout') || group.hasAttribute('data-timeline')) return;
+          const items = [...group.children].filter((child) => !child.matches('.heading-rule, [data-split-reveal], .about-annotation'));
           if (!items.length) return;
-          const horizontal = index % 3 === 0 ? -distance : index % 3 === 1 ? distance : 0;
+          const horizontal = index % 4 === 0 ? -distance : index % 4 === 1 ? distance : 0;
+          const vertical = horizontal ? 0 : distance * (index % 2 ? 0.45 : 0.7);
           gsap.from(items, {
             autoAlpha: 0,
             x: horizontal,
-            y: horizontal ? 0 : distance * 0.65,
+            y: vertical,
+            rotationZ: desktop ? (index % 2 ? 0.8 : -0.8) : 0,
+            scale: desktop && index % 5 === 0 ? 0.975 : 1,
+            clipPath: index % 3 === 0 ? 'inset(0 0 100% 0)' : index % 3 === 1 ? 'inset(0 100% 0 0)' : 'inset(8% 0 0 0)',
             duration: desktop ? 0.9 : 0.66,
             stagger: desktop ? 0.09 : 0.055,
             ease: 'power3.out',
             scrollTrigger: { trigger: group, start: 'top 88%', once: true }
+          });
+        });
+
+        $$('.motion-section-rail i').forEach((rail) => {
+          gsap.from(rail, {
+            scaleX: 0,
+            duration: 1.25,
+            ease: 'power2.inOut',
+            scrollTrigger: { trigger: rail.closest('[data-section]'), start: 'top 92%', once: true }
           });
         });
 
@@ -717,9 +860,83 @@
           gsap.from(number, {
             autoAlpha: 0,
             x: desktop ? -55 : -24,
+            rotationZ: desktop ? -5 : 0,
             duration: 0.75,
             ease: 'power3.out',
             scrollTrigger: { trigger: number, start: 'top 92%', once: true }
+          });
+        });
+
+        gsap.from('.project-kicker span', {
+          autoAlpha: 0,
+          x: desktop ? -94 : -32,
+          scale: desktop ? 1.28 : 1,
+          rotationZ: desktop ? -7 : 0,
+          duration: desktop ? 1 : 0.65,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.project-rodociclo', start: 'top 80%', once: true }
+        });
+
+        gsap.from('.project-index-large', {
+          autoAlpha: 0,
+          x: desktop ? -110 : -36,
+          scale: desktop ? 1.32 : 1,
+          rotationZ: desktop ? -8 : 0,
+          duration: desktop ? 1.05 : 0.68,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.project-biketech', start: 'top 80%', once: true }
+        });
+
+        $$('.project-facts').forEach((facts) => {
+          gsap.from([...facts.children], {
+            autoAlpha: 0,
+            x: desktop ? 52 : 22,
+            clipPath: 'inset(0 0 0 100%)',
+            duration: 0.72,
+            stagger: 0.1,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: facts, start: 'top 86%', once: true }
+          });
+        });
+
+        gsap.from('.stage-annotation', {
+          autoAlpha: 0,
+          x: desktop ? 34 : 12,
+          y: -18,
+          rotation: -7,
+          duration: 0.82,
+          delay: 0.4,
+          ease: 'back.out(1.45)',
+          scrollTrigger: { trigger: '.rodociclo-stage', start: 'top 82%', once: true }
+        });
+
+        gsap.from('.outcome-statement strong', {
+          autoAlpha: 0,
+          x: desktop ? -62 : -22,
+          skewX: desktop ? -5 : 0,
+          duration: 0.9,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.outcome-statement', start: 'top 84%', once: true }
+        });
+
+        gsap.from('.outcome-statement strong i', {
+          autoAlpha: 0,
+          scale: 0,
+          rotation: -160,
+          duration: 0.72,
+          delay: 0.28,
+          ease: 'back.out(1.8)',
+          scrollTrigger: { trigger: '.outcome-statement', start: 'top 84%', once: true }
+        });
+
+        $$('.project-scope').forEach((scope) => {
+          gsap.from($$('li', scope), {
+            autoAlpha: 0,
+            x: desktop ? 32 : 18,
+            duration: desktop ? 0.58 : 0.44,
+            stagger: desktop ? 0.055 : 0.032,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: scope, start: 'top 84%', once: true }
           });
         });
 
@@ -744,6 +961,23 @@
           scrollTrigger: { trigger: '.rodociclo-stage', start: 'top 80%', once: true }
         });
 
+        gsap.to('.rodociclo-stage .motion-shutter i', {
+          scaleX: 0,
+          transformOrigin: (index) => index % 2 ? 'right center' : 'left center',
+          duration: desktop ? 0.82 : 0.55,
+          stagger: 0.075,
+          ease: 'power3.inOut',
+          scrollTrigger: { trigger: '.rodociclo-stage', start: 'top 82%', once: true }
+        });
+
+        gsap.from('.rodociclo-stage .media-content', {
+          scale: desktop ? 1.09 : 1.04,
+          duration: 1.3,
+          stagger: 0.12,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.rodociclo-stage', start: 'top 82%', once: true }
+        });
+
         gsap.from('.biketech-gallery .btm-frame', {
           autoAlpha: 0,
           clipPath: 'inset(12% 12% 12% 12% round 18px)',
@@ -752,6 +986,24 @@
           transformOrigin: (index) => (index % 2 ? 'left center' : 'right center'),
           duration: 0.95,
           stagger: 0.13,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.biketech-gallery', start: 'top 84%', once: true }
+        });
+
+        gsap.to('.biketech-gallery .motion-shutter i', {
+          scaleY: 0,
+          transformOrigin: (index) => index % 2 ? 'center top' : 'center bottom',
+          duration: desktop ? 0.76 : 0.5,
+          stagger: 0.06,
+          ease: 'power3.inOut',
+          scrollTrigger: { trigger: '.biketech-gallery', start: 'top 84%', once: true }
+        });
+
+        gsap.from('.biketech-gallery .media-content', {
+          scale: desktop ? 1.1 : 1.04,
+          rotation: desktop ? (index) => index % 2 ? 1.2 : -1.2 : 0,
+          duration: 1.18,
+          stagger: 0.11,
           ease: 'power3.out',
           scrollTrigger: { trigger: '.biketech-gallery', start: 'top 84%', once: true }
         });
@@ -766,6 +1018,42 @@
           stagger: desktop ? 0.11 : 0.06,
           ease: 'power3.out',
           scrollTrigger: { trigger: '.creative-grid', start: 'top 86%', once: true }
+        });
+
+        gsap.to('.creative-grid .motion-shutter i', {
+          scaleY: 0,
+          transformOrigin: (index) => index % 2 ? 'center top' : 'center bottom',
+          duration: desktop ? 0.64 : 0.42,
+          stagger: desktop ? 0.025 : 0.012,
+          ease: 'power2.inOut',
+          scrollTrigger: { trigger: '.creative-grid', start: 'top 86%', once: true }
+        });
+
+        gsap.from('.creative-grid .media-content', {
+          scale: desktop ? 1.12 : 1.04,
+          rotation: desktop ? (index) => index % 2 ? 1.5 : -1.5 : 0,
+          duration: desktop ? 1.05 : 0.68,
+          stagger: desktop ? 0.07 : 0.035,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.creative-grid', start: 'top 86%', once: true }
+        });
+
+        gsap.from('.creative-grid figcaption > *', {
+          autoAlpha: 0,
+          y: 16,
+          duration: 0.52,
+          stagger: 0.035,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.creative-grid', start: 'top 84%', once: true }
+        });
+
+        gsap.to('.before-after .motion-shutter i', {
+          scaleX: 0,
+          transformOrigin: (index) => index % 2 ? 'right center' : 'left center',
+          duration: 0.68,
+          stagger: 0.055,
+          ease: 'power3.inOut',
+          scrollTrigger: { trigger: '.before-after', start: 'top 84%', once: true }
         });
 
         gsap.from('[data-timeline-line]', {
@@ -803,6 +1091,67 @@
           scrollTrigger: { trigger: '.method-list', start: 'top 80%', once: true }
         });
 
+        gsap.from('.method-label', {
+          autoAlpha: 0,
+          x: desktop ? 44 : 20,
+          duration: 0.62,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.method', start: 'top 82%', once: true }
+        });
+
+        gsap.from('.method-list li', {
+          autoAlpha: 0,
+          x: desktop ? 58 : 22,
+          clipPath: 'inset(0 0 0 100%)',
+          duration: desktop ? 0.74 : 0.54,
+          stagger: 0.11,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.method-list', start: 'top 82%', once: true }
+        });
+
+        const methodItems = $$('.method-list li');
+        const setCurrentMethod = (current) => {
+          methodItems.forEach((item) => item.classList.toggle('is-current', item === current));
+        };
+        methodItems.forEach((item) => {
+          ScrollTrigger.create({
+            trigger: item,
+            start: 'top 58%',
+            end: 'bottom 48%',
+            onEnter: () => setCurrentMethod(item),
+            onEnterBack: () => setCurrentMethod(item)
+          });
+        });
+
+        gsap.from('.about-annotation', {
+          autoAlpha: 0,
+          x: desktop ? -48 : -20,
+          clipPath: 'inset(0 100% 0 0)',
+          duration: 0.82,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.about-annotation', start: 'top 86%', once: true }
+        });
+
+        gsap.from('.toolset details', {
+          autoAlpha: 0,
+          x: desktop ? 48 : 22,
+          clipPath: 'inset(0 0 0 100%)',
+          duration: desktop ? 0.72 : 0.52,
+          stagger: 0.09,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.toolset', start: 'top 82%', once: true }
+        });
+
+        gsap.from('.toolset summary span, .toolset summary i', {
+          autoAlpha: 0,
+          scale: 0,
+          rotation: desktop ? -90 : 0,
+          duration: 0.52,
+          stagger: 0.055,
+          ease: 'back.out(1.7)',
+          scrollTrigger: { trigger: '.toolset', start: 'top 82%', once: true }
+        });
+
         gsap.from('.credentials article', {
           autoAlpha: 0,
           x: (index) => (desktop ? (index % 2 ? 58 : -58) : 0),
@@ -811,6 +1160,42 @@
           stagger: 0.12,
           ease: 'power3.out',
           scrollTrigger: { trigger: '.credentials-layout', start: 'top 78%', once: true }
+        });
+
+        gsap.from('.credentials article > span', {
+          autoAlpha: 0,
+          scale: 0.4,
+          rotation: desktop ? -80 : 0,
+          duration: 0.58,
+          stagger: 0.12,
+          ease: 'back.out(1.7)',
+          scrollTrigger: { trigger: '.credentials-layout', start: 'top 78%', once: true }
+        });
+
+        gsap.from('.contact-side', {
+          autoAlpha: 0,
+          y: desktop ? 70 : 20,
+          duration: 0.8,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.contact-layout', start: 'top 80%', once: true }
+        });
+
+        gsap.from('.contact-details > *, .contact-actions > *', {
+          autoAlpha: 0,
+          y: 30,
+          scale: desktop ? 0.96 : 1,
+          duration: 0.72,
+          stagger: 0.09,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.contact-layout', start: 'top 72%', once: true }
+        });
+
+        gsap.from('.contact-signature path', {
+          strokeDashoffset: 520,
+          duration: 1.4,
+          stagger: 0.12,
+          ease: 'power2.inOut',
+          scrollTrigger: { trigger: '.contact-layout', start: 'top 70%', once: true }
         });
 
         gsap.from('.project-side-note', {
@@ -836,6 +1221,42 @@
             y: 44,
             ease: 'none',
             scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 0.5 }
+          });
+
+          gsap.to('.project-rodociclo .project-heading h3', {
+            xPercent: -4,
+            ease: 'none',
+            scrollTrigger: { trigger: '.project-rodociclo', start: 'top bottom', end: 'bottom top', scrub: 0.65 }
+          });
+
+          gsap.fromTo('.project-biketech .biketech-title-block h3', { xPercent: -2 }, {
+            xPercent: 4,
+            ease: 'none',
+            scrollTrigger: { trigger: '.project-biketech', start: 'top bottom', end: 'bottom top', scrub: 0.65 }
+          });
+
+          gsap.to('.creative-heading h2', {
+            xPercent: 3,
+            ease: 'none',
+            scrollTrigger: { trigger: '.creative-work', start: 'top bottom', end: 'bottom top', scrub: 0.7 }
+          });
+
+          gsap.fromTo('.about-statement h2', { xPercent: 2 }, {
+            xPercent: -3,
+            ease: 'none',
+            scrollTrigger: { trigger: '.about-process', start: 'top bottom', end: 'bottom top', scrub: 0.7 }
+          });
+
+          gsap.to('.stage-annotation', {
+            yPercent: -36,
+            ease: 'none',
+            scrollTrigger: { trigger: '.rodociclo-stage', start: 'top bottom', end: 'bottom top', scrub: 0.55 }
+          });
+
+          gsap.fromTo('.contact-layout h2', { xPercent: 2.5 }, {
+            xPercent: -2.5,
+            ease: 'none',
+            scrollTrigger: { trigger: '.contact', start: 'top bottom', end: 'bottom top', scrub: 0.65 }
           });
 
           const galleryDriftUp = gsap.utils.toArray('.tile-tall, .tile-small, .tile-reel-three');
@@ -870,6 +1291,7 @@
         }
 
         return () => {
+          methodItems.forEach((item) => item.classList.remove('is-current'));
           pointerCleanup?.();
           pointerCleanup = null;
           interactionCleanup?.();
@@ -911,10 +1333,13 @@
   }
 
   prepareTextReveals();
+  prepareHeroWords();
+  prepareMotionDecorations();
   initializeTheme();
   initializeProfileAvatar();
   initializeNavigation();
   initializeCaseStudies();
+  initializeToolsetInteractions();
   initializeInlineMedia();
   initializeMediaViewer();
   initializeMotion();

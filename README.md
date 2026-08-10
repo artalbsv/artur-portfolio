@@ -52,14 +52,17 @@ The animation system in `script.js` is organized into:
 
 - one scoped `gsap.context()` for page motion;
 - one `gsap.matchMedia()` split for desktop and mobile distances;
-- one hero entrance timeline and one small decorative timeline;
-- semantic word reveals that preserve readable source text before JavaScript runs;
-- grouped ScrollTriggers for editorial sections and gallery drift;
-- distinct mask and directional sequences for each project;
-- a single timeline drawing sequence;
-- restrained desktop-only parallax, depth and pointer spotlight effects;
-- magnetic feedback for primary controls on fine-pointer devices;
+- a short non-blocking page curtain, layered hero entrance and geometric line drawing;
+- semantic word reveals with temporary clip paths that never crop the final typography;
+- hand-drawn SVG accent strokes instead of full-width decorative underlines;
+- section rails, numbers, directional entrances and grouped gallery drift;
+- distinct shutters, masks, media scaling and parallax sequences for each project;
+- animated process states, timeline drawing, toolkit, credentials and contact sequences;
+- enhanced case-study and full-ratio media-viewer transitions;
+- restrained desktop-only depth, pointer spotlight and magnetic feedback for primary controls;
 - cleanup through `revert()` and listener removal when motion preferences change or the page is left.
+
+The expanded motion language still uses only the self-hosted GSAP runtime already in the repository. React, WebGL and additional animation runtimes are intentionally unnecessary for these effects, keeping the portfolio directly deployable as static files.
 
 Navigation state, theme changes, disclosures and media-viewer behavior remain independent of ScrollTrigger.
 
@@ -73,7 +76,7 @@ The page respects `prefers-reduced-motion`. When reduction is requested:
 - smooth scrolling is disabled;
 - content remains in its final readable position.
 
-Mobile layouts use shorter entrances and omit parallax. Pointer response runs only on hover-capable fine pointers. Decorative motion pauses while the browser tab is hidden.
+Mobile layouts use shorter entrances, simplified shutters and no parallax or pointer depth. Pointer response runs only on hover-capable fine pointers. Decorative motion pauses while the browser tab is hidden, and `will-change` is applied only during relevant pointer interactions.
 
 All content is visible without JavaScript. The mobile navigation expands in the document flow and both case studies remain open when JavaScript is unavailable.
 
