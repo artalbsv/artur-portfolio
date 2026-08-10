@@ -19,6 +19,9 @@
   let pointerCleanup = null;
   let interactionCleanup = null;
   let kineticCleanup = null;
+  let fieldCleanup = null;
+  let signatureCleanup = null;
+  let sitewideCleanup = null;
   let scrollFrame = 0;
   let maximumScroll = 1;
   let gsapRegistered = false;
@@ -121,16 +124,6 @@
         node.replaceWith(fragment);
       });
 
-      $$('em', heading).forEach((emphasis) => {
-        const brush = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        brush.setAttribute('class', 'motion-brush');
-        brush.setAttribute('aria-hidden', 'true');
-        brush.setAttribute('viewBox', '0 0 120 20');
-        brush.setAttribute('preserveAspectRatio', 'none');
-        brush.innerHTML = '<path pathLength="1" d="M2 14C19 3 42 17 62 9S98 5 118 12"></path><path pathLength="1" d="M24 18C43 11 61 17 88 12"></path>';
-        emphasis.append(brush);
-      });
-
       heading.setAttribute('aria-label', accessibleLabel);
       heading.dataset.motionSplit = 'true';
     });
@@ -165,6 +158,172 @@
     });
   }
 
+  function prepareDynamicWeightText() {
+    $$('[data-dynamic-weight]').forEach((element) => {
+      if (element.dataset.weightSplit === 'true') return;
+      const accessibleLabel = element.textContent.replace(/\s+/g, ' ').trim();
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+      textNodes.forEach((node) => {
+        const fragment = document.createDocumentFragment();
+        [...node.nodeValue].forEach((character) => {
+          if (/\s/.test(character)) {
+            fragment.append(document.createTextNode(character));
+            return;
+          }
+          const letter = document.createElement('span');
+          letter.className = 'weight-char';
+          letter.setAttribute('aria-hidden', 'true');
+          letter.textContent = character;
+          fragment.append(letter);
+        });
+        node.replaceWith(fragment);
+      });
+
+      element.setAttribute('aria-label', accessibleLabel);
+      element.dataset.weightSplit = 'true';
+    });
+  }
+
+  function createTextMorphController(element, hold = 2600) {
+    if (!element) return () => {};
+    const words = element.dataset.morphWords?.split('|').map((word) => word.trim()).filter(Boolean) || [];
+    if (words.length < 2) return () => {};
+
+    if (element.dataset.morphPrepared !== 'true') {
+      const size = document.createElement('span');
+      const front = document.createElement('span');
+      const back = document.createElement('span');
+      size.className = 'morph-size';
+      size.setAttribute('aria-hidden', 'true');
+      words.forEach((word) => {
+        const candidate = document.createElement('i');
+        candidate.textContent = word;
+        size.append(candidate);
+      });
+      front.className = 'morph-layer is-current';
+      back.className = 'morph-layer';
+      front.setAttribute('aria-hidden', 'true');
+      back.setAttribute('aria-hidden', 'true');
+      front.textContent = words[0];
+      back.textContent = words[1];
+      element.replaceChildren(size, front, back);
+      element.setAttribute('aria-label', words.join(' / '));
+      element.dataset.morphPrepared = 'true';
+    }
+
+    const layers = $$('.morph-layer', element);
+    if (layers.length !== 2) return () => {};
+    let activeLayer = 0;
+    let wordIndex = 0;
+    let timer = 0;
+    let visible = false;
+    let observer = null;
+    let timeline = null;
+
+    const resetLayers = () => {
+      timeline?.kill();
+      timeline = null;
+      wordIndex = 0;
+      activeLayer = 0;
+      layers[0].textContent = words[0];
+      layers[1].textContent = words[1];
+      layers[0].classList.add('is-current');
+      layers[1].classList.remove('is-current');
+      if (window.gsap) {
+        window.gsap.set(layers[0], { autoAlpha: 1, scale: 1, filter: 'blur(0px)', clearProps: 'transform,filter' });
+        window.gsap.set(layers[1], { autoAlpha: 0, scale: 0.88, filter: 'blur(7px)' });
+      } else {
+        layers[0].style.opacity = '1';
+        layers[1].style.opacity = '0';
+      }
+    };
+
+    const stop = () => {
+      window.clearTimeout(timer);
+      timer = 0;
+      timeline?.kill();
+      timeline = null;
+    };
+
+    const schedule = () => {
+      window.clearTimeout(timer);
+      timer = 0;
+      if (!visible || document.hidden || reducedMotion.matches) return;
+      timer = window.setTimeout(() => {
+        const outgoing = layers[activeLayer];
+        const incomingIndex = activeLayer === 0 ? 1 : 0;
+        const incoming = layers[incomingIndex];
+        wordIndex = (wordIndex + 1) % words.length;
+        incoming.textContent = words[wordIndex];
+
+        if (!canAnimate()) {
+          outgoing.classList.remove('is-current');
+          incoming.classList.add('is-current');
+          outgoing.style.opacity = '0';
+          incoming.style.opacity = '1';
+          activeLayer = incomingIndex;
+          schedule();
+          return;
+        }
+
+        window.gsap.killTweensOf(layers);
+        window.gsap.set(incoming, { autoAlpha: 0, scale: 0.84, filter: 'blur(9px)' });
+        timeline = window.gsap.timeline({
+          defaults: { ease: 'power2.inOut' },
+          onComplete: () => {
+            outgoing.classList.remove('is-current');
+            incoming.classList.add('is-current');
+            window.gsap.set(outgoing, { autoAlpha: 0, scale: 1, filter: 'blur(0px)' });
+            window.gsap.set(incoming, { clearProps: 'transform,filter' });
+            activeLayer = incomingIndex;
+            timeline = null;
+            schedule();
+          }
+        });
+        timeline
+          .to(outgoing, { autoAlpha: 0, scale: 1.12, filter: 'blur(7px)', duration: 0.42 }, 0)
+          .to(incoming, { autoAlpha: 1, scale: 1, filter: 'blur(0px)', duration: 0.58, ease: 'power3.out' }, 0.12);
+      }, hold);
+    };
+
+    resetLayers();
+    if ('IntersectionObserver' in window) {
+      observer = new IntersectionObserver(([entry]) => {
+        visible = Boolean(entry?.isIntersecting);
+        if (visible) schedule();
+        else stop();
+      }, { threshold: 0.2 });
+      observer.observe(element);
+    } else {
+      visible = true;
+      schedule();
+    }
+
+    const handleVisibility = () => {
+      if (document.hidden) stop();
+      else schedule();
+    };
+    const handleMotionPreference = () => {
+      if (reducedMotion.matches) {
+        stop();
+        resetLayers();
+      } else schedule();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    if ('addEventListener' in reducedMotion) reducedMotion.addEventListener('change', handleMotionPreference);
+
+    return () => {
+      stop();
+      observer?.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if ('removeEventListener' in reducedMotion) reducedMotion.removeEventListener('change', handleMotionPreference);
+      resetLayers();
+    };
+  }
+
   function prepareMotionDecorations() {
     if (document.body.dataset.motionDecorated === 'true') return;
 
@@ -176,7 +335,7 @@
 
     const spine = document.createElement('ol');
     spine.className = 'motion-spine';
-    spine.setAttribute('aria-hidden', 'true');
+    spine.setAttribute('aria-label', 'Portfolio scenes');
     spine.innerHTML = [
       ['top', 'Intro'],
       ['work', 'Work'],
@@ -185,8 +344,44 @@
       ['experience', 'Experience'],
       ['credentials', 'Education'],
       ['contact', 'Contact']
-    ].map(([id, label], index) => `<li data-spine-section="${id}"${index === 0 ? ' class="is-active"' : ''}><i></i><span>${label}</span></li>`).join('');
+    ].map(([id, label], index) => `<li data-spine-section="${id}"${index === 0 ? ' class="is-active"' : ''}><a href="#${id}" aria-label="Go to ${label}"><i aria-hidden="true"></i><span>${label}</span></a></li>`).join('');
     document.body.append(spine);
+
+    const ambientField = document.createElement('div');
+    ambientField.className = 'ambient-field';
+    ambientField.setAttribute('aria-hidden', 'true');
+    ambientField.innerHTML = `
+      <svg class="ambient-lines" viewBox="0 0 1440 900" preserveAspectRatio="none" role="presentation">
+        <g data-ambient-lines>
+          ${Array.from({ length: 14 }, (_, index) => {
+            const y = 245 + index * 27;
+            const depth = 92 + index * 4;
+            return `<path d="M-120 ${y} C 260 ${y - depth}, 520 ${y + depth}, 790 ${y + 18} S 1280 ${y - depth}, 1560 ${y + 8}"></path>`;
+          }).join('')}
+        </g>
+      </svg>
+      <span class="ambient-side-waves" data-ambient-waves>${'<i></i>'.repeat(6)}</span>`;
+    document.body.prepend(ambientField);
+
+    const kineticField = document.createElement('canvas');
+    kineticField.className = 'kinetic-field-canvas';
+    kineticField.setAttribute('aria-hidden', 'true');
+    kineticField.setAttribute('data-kinetic-field', '');
+    document.body.prepend(kineticField);
+
+    const sceneEcho = document.createElement('div');
+    sceneEcho.className = 'kinetic-scene-echo';
+    sceneEcho.setAttribute('aria-hidden', 'true');
+    sceneEcho.setAttribute('data-kinetic-echo', '');
+    sceneEcho.innerHTML = '<span data-kinetic-echo-index>01 / 07</span><strong data-kinetic-echo-word>BUILD</strong><i>ARTUR / MOTION SYSTEM</i>';
+    document.body.append(sceneEcho);
+
+    const sceneSurge = document.createElement('div');
+    sceneSurge.className = 'kinetic-scene-surge';
+    sceneSurge.setAttribute('aria-hidden', 'true');
+    sceneSurge.setAttribute('data-kinetic-surge', '');
+    sceneSurge.innerHTML = '<i></i><strong data-kinetic-surge-word>BUILD</strong><span>SCENE / 01</span>';
+    document.body.append(sceneSurge);
 
     $$('[data-section]:not(.hero)').forEach((section) => {
       const rail = document.createElement('span');
@@ -232,7 +427,296 @@
       trigger.append(orbit);
     });
 
+    $$('.outcome-statement, .toolset-stage, .credentials-signal').forEach((panel) => {
+      const glow = document.createElement('b');
+      glow.className = 'information-glow';
+      glow.setAttribute('aria-hidden', 'true');
+      panel.append(glow);
+    });
+
     document.body.dataset.motionDecorated = 'true';
+  }
+
+  function initializeKineticField() {
+    const canvas = $('[data-kinetic-field]');
+    const echo = $('[data-kinetic-echo]');
+    const echoIndex = $('[data-kinetic-echo-index]');
+    const echoWord = $('[data-kinetic-echo-word]');
+    const surge = $('[data-kinetic-surge]');
+    const surgeWord = $('[data-kinetic-surge-word]');
+    const surgeIndex = surge?.querySelector('span');
+    const context = canvas?.getContext?.('2d', { alpha: true, desynchronized: true });
+    if (!canvas || !context) return () => {};
+
+    const scenes = {
+      top: { index: '01 / 07', short: '01', word: 'BUILD', amplitude: 1, frequency: 1 },
+      work: { index: '02 / 07', short: '02', word: 'COMMERCE', amplitude: 1.34, frequency: 0.82 },
+      'visual-work': { index: '03 / 07', short: '03', word: 'MOTION', amplitude: 1.62, frequency: 1.24 },
+      about: { index: '04 / 07', short: '04', word: 'METHOD', amplitude: 0.86, frequency: 1.48 },
+      experience: { index: '05 / 07', short: '05', word: 'SYSTEMS', amplitude: 1.12, frequency: 0.68 },
+      credentials: { index: '06 / 07', short: '06', word: 'LEARN', amplitude: 0.74, frequency: 1.68 },
+      contact: { index: '07 / 07', short: '07', word: 'TOGETHER', amplitude: 1.42, frequency: 0.96 }
+    };
+
+    let width = 1;
+    let height = 1;
+    let pixelRatio = 1;
+    let frame = 0;
+    let resizeFrame = 0;
+    let pointerIdleTimer = 0;
+    let previousTime = 0;
+    let phase = 0;
+    let scrollTarget = 0;
+    let scrollValue = 0;
+    let lastScrollY = window.scrollY;
+    let lastScrollTime = performance.now();
+    let energy = 0.18;
+    let active = false;
+    let sceneKey = root.dataset.scene && scenes[root.dataset.scene] ? root.dataset.scene : 'top';
+    let scene = scenes[sceneKey];
+    let previousSceneKey = sceneKey;
+    let palette = { red: '#E32636', line: 'rgba(245,245,247,.22)', text: '#F5F5F7', dark: true };
+    let pulses = [];
+    const pointer = { x: 0, y: 0, targetX: 0, targetY: 0, active: false, velocity: 0 };
+    const listeners = [];
+
+    const listen = (element, type, handler, options) => {
+      if (!element) return;
+      element.addEventListener(type, handler, options);
+      listeners.push(() => element.removeEventListener(type, handler, options));
+    };
+
+    const canRun = () => !reducedMotion.matches && !mobileLayout.matches && finePointer.matches;
+
+    const updatePalette = () => {
+      const styles = getComputedStyle(root);
+      palette = {
+        red: styles.getPropertyValue('--red-bright').trim() || '#E32636',
+        line: styles.getPropertyValue('--line-strong').trim() || 'rgba(245,245,247,.22)',
+        text: styles.getPropertyValue('--text').trim() || '#F5F5F7',
+        dark: root.dataset.theme !== 'light'
+      };
+    };
+
+    const resize = () => {
+      width = Math.max(1, window.innerWidth);
+      height = Math.max(1, window.innerHeight);
+      pixelRatio = Math.min(window.devicePixelRatio || 1, 1.25);
+      canvas.width = Math.round(width * pixelRatio);
+      canvas.height = Math.round(height * pixelRatio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      pointer.x ||= width * 0.72;
+      pointer.y ||= height * 0.46;
+      pointer.targetX ||= pointer.x;
+      pointer.targetY ||= pointer.y;
+      updatePalette();
+    };
+
+    const drawSceneWord = () => {
+      const fontSize = Math.min(230, Math.max(92, width * 0.155));
+      const x = width * 0.5 - scrollValue * 90;
+      const y = height * 0.82 + Math.sin(phase * 0.42) * 16;
+      context.save();
+      context.globalAlpha = palette.dark ? 0.06 : 0.045;
+      context.strokeStyle = energy > 0.68 ? palette.red : palette.text;
+      context.lineWidth = 1.15;
+      context.font = `760 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      context.textAlign = 'left';
+      context.textBaseline = 'alphabetic';
+      context.strokeText(scene.word, x, y);
+      context.globalAlpha *= 0.42;
+      context.strokeText(scene.word, x + 28, y + 32);
+      context.restore();
+    };
+
+    const drawField = () => {
+      const lines = width > 1180 ? 21 : 16;
+      const radius = Math.min(width, height) * (0.25 + energy * 0.08);
+      const baseAmplitude = (18 + Math.min(44, width * 0.025)) * scene.amplitude * (1 + energy * 0.18);
+      const step = width > 1500 ? 48 : 42;
+
+      context.save();
+      context.globalCompositeOperation = palette.dark ? 'lighter' : 'source-over';
+      for (let line = 0; line < lines; line += 1) {
+        const ratio = (line + 1) / (lines + 1);
+        const baseY = ratio * height;
+        context.beginPath();
+
+        for (let x = -step; x <= width + step; x += step) {
+          const waveOne = Math.sin(x * 0.0062 * scene.frequency + phase * 0.72 + line * 0.39);
+          const waveTwo = Math.sin(x * 0.0027 - phase * 0.43 + line * 0.72);
+          let y = baseY + waveOne * baseAmplitude + waveTwo * baseAmplitude * 0.42;
+          y += Math.sin(ratio * Math.PI + scrollValue * Math.PI * 2) * 34 * (ratio - 0.5);
+
+          const deltaX = x - pointer.x;
+          const deltaY = y - pointer.y;
+          const distance = Math.hypot(deltaX, deltaY);
+          const proximity = pointer.active && distance < radius ? 1 - distance / radius : 0;
+          const pull = proximity * proximity * (0.2 + energy * 0.16);
+          const warpedX = x - deltaX * pull * 0.17;
+          y -= deltaY * pull;
+          y += Math.sin(distance * 0.038 - phase * 3.1) * proximity * (8 + energy * 16);
+
+          if (x === -step) context.moveTo(warpedX, y);
+          else context.lineTo(warpedX, y);
+        }
+
+        const accent = line === ((Number(scene.short) * 3) % lines);
+        const signalActive = pointer.active || energy > 0.52;
+        context.globalAlpha = accent ? (signalActive ? 0.24 + energy * 0.06 : 0.18) : (palette.dark ? 0.15 : 0.1);
+        context.strokeStyle = accent && signalActive ? palette.red : palette.line;
+        context.lineWidth = accent ? 1.02 : 0.72;
+        context.stroke();
+      }
+      context.restore();
+    };
+
+    const drawPulses = () => {
+      pulses = pulses.filter((pulse) => pulse.life < 1);
+      pulses.forEach((pulse) => {
+        pulse.life += 0.035;
+        const eased = 1 - Math.pow(1 - pulse.life, 3);
+        context.beginPath();
+        context.globalAlpha = (1 - pulse.life) * 0.55;
+        context.strokeStyle = pulse.accent ? palette.red : palette.text;
+        context.lineWidth = 1;
+        context.arc(pulse.x, pulse.y, 12 + eased * 170, 0, Math.PI * 2);
+        context.stroke();
+      });
+      context.globalAlpha = 1;
+    };
+
+    const render = (time) => {
+      frame = requestAnimationFrame(render);
+      if (!active || document.hidden || time - previousTime < 33) return;
+      previousTime = time;
+      phase += 0.018 + energy * 0.006;
+      scrollValue += (scrollTarget - scrollValue) * 0.055;
+      pointer.x += (pointer.targetX - pointer.x) * 0.095;
+      pointer.y += (pointer.targetY - pointer.y) * 0.095;
+      pointer.velocity *= 0.9;
+      energy += ((pointer.active ? 0.52 : 0.18) - energy) * 0.04;
+
+      context.clearRect(0, 0, width, height);
+      drawSceneWord();
+      drawField();
+      drawPulses();
+    };
+
+    const animateScene = (nextKey) => {
+      const nextScene = scenes[nextKey] || scenes.top;
+      sceneKey = scenes[nextKey] ? nextKey : 'top';
+      scene = nextScene;
+      if (echoIndex) echoIndex.textContent = scene.index;
+      if (echoWord) echoWord.textContent = scene.word;
+      if (surgeWord) surgeWord.textContent = scene.word;
+      if (surgeIndex) surgeIndex.textContent = `SCENE / ${scene.short}`;
+      pulses.push({ x: width * 0.72, y: height * 0.5, life: 0, accent: true });
+      energy = Math.max(energy, 0.92);
+
+      if (!canAnimate() || !echo || !surge || previousSceneKey === sceneKey) {
+        previousSceneKey = sceneKey;
+        return;
+      }
+      previousSceneKey = sceneKey;
+      window.gsap.killTweensOf([echo, echoWord, surge, surgeWord, surge.querySelector('i')]);
+      window.gsap.fromTo(echoWord, { autoAlpha: 0, x: 34, skewX: -8 }, {
+        autoAlpha: 1, x: 0, skewX: 0, duration: 0.72, ease: 'power3.out', clearProps: 'opacity,visibility,transform'
+      });
+      window.gsap.timeline()
+        .set(surge, { autoAlpha: 1 })
+        .fromTo(surgeWord, { xPercent: 42, skewX: -12, scaleX: 0.82 }, { xPercent: -8, skewX: 0, scaleX: 1, duration: 0.82, ease: 'power3.out' }, 0)
+        .fromTo(surge.querySelector('i'), { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: 'power2.inOut' }, 0.06)
+        .to(surge, { autoAlpha: 0, duration: 0.36, ease: 'power2.out' }, 0.52);
+    };
+
+    const updateActivity = () => {
+      active = canRun();
+      canvas.hidden = !active;
+      echo.hidden = !active;
+      surge.hidden = !active;
+      root.classList.toggle('kinetic-field-ready', active);
+      if (active && !frame) frame = requestAnimationFrame(render);
+      if (!active) context.clearRect(0, 0, width, height);
+    };
+
+    const handlePointerMove = (event) => {
+      const deltaX = event.clientX - pointer.targetX;
+      const deltaY = event.clientY - pointer.targetY;
+      pointer.targetX = event.clientX;
+      pointer.targetY = event.clientY;
+      pointer.velocity = Math.min(1.4, Math.hypot(deltaX, deltaY) / 75);
+      pointer.active = true;
+      energy = Math.max(energy, 0.42 + pointer.velocity * 0.35);
+      window.clearTimeout(pointerIdleTimer);
+      pointerIdleTimer = window.setTimeout(() => {
+        pointer.active = false;
+      }, 520);
+    };
+    const handlePointerLeave = () => {
+      window.clearTimeout(pointerIdleTimer);
+      pointer.active = false;
+      pointer.targetX = width * 0.72;
+      pointer.targetY = height * 0.48;
+    };
+    const handleScroll = () => {
+      const now = performance.now();
+      const nextScrollY = window.scrollY;
+      const distance = Math.abs(nextScrollY - lastScrollY);
+      const elapsed = Math.max(16, now - lastScrollTime);
+      const velocity = Math.min(1, distance / elapsed);
+      const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      scrollTarget = Math.min(1, Math.max(0, nextScrollY / maximum));
+      energy = Math.max(energy, 0.22 + Math.min(0.76, distance / 180 + velocity * 0.28));
+      lastScrollY = nextScrollY;
+      lastScrollTime = now;
+    };
+    const handleResize = () => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        resize();
+        updateActivity();
+      });
+    };
+    const handleAttributeChange = () => {
+      updatePalette();
+      const nextKey = root.dataset.scene && scenes[root.dataset.scene] ? root.dataset.scene : 'top';
+      if (nextKey !== sceneKey) animateScene(nextKey);
+    };
+    const handleVisibility = () => {
+      if (!document.hidden && active && !frame) frame = requestAnimationFrame(render);
+    };
+
+    const observer = new MutationObserver(handleAttributeChange);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-scene', 'data-theme'] });
+
+    listen(document, 'pointermove', handlePointerMove, { passive: true });
+    listen(document.documentElement, 'pointerleave', handlePointerLeave, { passive: true });
+    listen(window, 'scroll', handleScroll, { passive: true });
+    listen(window, 'resize', handleResize, { passive: true });
+    listen(document, 'visibilitychange', handleVisibility);
+    if ('addEventListener' in reducedMotion) listen(reducedMotion, 'change', updateActivity);
+    if ('addEventListener' in mobileLayout) listen(mobileLayout, 'change', updateActivity);
+    if ('addEventListener' in finePointer) listen(finePointer, 'change', updateActivity);
+
+    resize();
+    handleScroll();
+    animateScene(sceneKey);
+    updateActivity();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      cancelAnimationFrame(resizeFrame);
+      window.clearTimeout(pointerIdleTimer);
+      frame = 0;
+      observer.disconnect();
+      listeners.splice(0).forEach((remove) => remove());
+      context.clearRect(0, 0, width, height);
+      root.classList.remove('kinetic-field-ready');
+      window.gsap?.killTweensOf([echo, echoWord, surge, surgeWord, surge?.querySelector('i')].filter(Boolean));
+    };
   }
 
   function initializeNavigation() {
@@ -322,6 +806,7 @@
           }
         });
         const activeId = navigationGroup.get(visibleSection) || '';
+        if (visibleSection) root.dataset.scene = visibleSection;
         navLinks.forEach((link) => {
           if (link.getAttribute('href') === `#${activeId}`) link.setAttribute('aria-current', 'location');
           else link.removeAttribute('aria-current');
@@ -499,7 +984,585 @@
       });
     });
 
+    toolset.addEventListener('toolset:activate', (event) => {
+      const nextIndex = Number(event.detail?.index);
+      if (!Number.isInteger(nextIndex) || !detailsItems[nextIndex]) return;
+      activate(detailsItems[nextIndex], nextIndex);
+    });
+
     activate(detailsItems.find((details) => details.open) || detailsItems[0], Math.max(0, detailsItems.findIndex((details) => details.open)));
+  }
+
+  function initializeSignatureInteractions() {
+    signatureCleanup?.();
+    const cleanupTasks = [];
+    const surface = $('[data-studio-surface]');
+    const selectors = surface ? $$('[data-studio-select]', surface) : [];
+    const stateWord = surface ? $('[data-studio-word]', surface) : null;
+    const stateIndex = surface ? $('[data-studio-index]', surface) : null;
+    const stateCopy = surface ? $('[data-studio-copy]', surface) : null;
+    const stateCode = surface ? $('[data-studio-code]', surface) : null;
+    const pointerObject = surface ? $('[data-pointer-object]', surface) : null;
+    const matrixCells = surface ? $$('.kinetic-matrix i', surface) : [];
+
+    const modes = {
+      design: { index: 'MODE / 01', word: 'DESIGN', copy: 'Visual systems with a reason.', code: 'INTERACTIVE / DESIGN' },
+      code: { index: 'MODE / 02', word: 'CODE', copy: 'Prototypes built to survive production.', code: 'INTERACTIVE / CODE' },
+      motion: { index: 'MODE / 03', word: 'MOTION', copy: 'Movement that explains and guides.', code: 'INTERACTIVE / MOTION' },
+      commerce: { index: 'MODE / 04', word: 'COMMERCE', copy: 'Flows connected to customer decisions.', code: 'INTERACTIVE / COMMERCE' }
+    };
+
+    let currentMode = surface?.dataset.studioActive || 'design';
+    const writeMode = (mode) => {
+      const content = modes[mode] || modes.design;
+      if (stateWord) stateWord.textContent = content.word;
+      if (stateIndex) stateIndex.textContent = content.index;
+      if (stateCopy) stateCopy.textContent = content.copy;
+      if (stateCode) stateCode.textContent = content.code;
+    };
+
+    const activateMode = (mode, animate = true) => {
+      if (!surface || !modes[mode]) return;
+      const changed = mode !== currentMode;
+      currentMode = mode;
+      surface.dataset.studioActive = mode;
+      selectors.forEach((selector) => selector.setAttribute('aria-pressed', String(selector.dataset.studioSelect === mode)));
+
+      if (!changed || !animate || !canAnimate()) {
+        writeMode(mode);
+        return;
+      }
+
+      const { gsap } = window;
+      gsap.killTweensOf([stateWord, stateIndex, stateCopy, stateCode, pointerObject, ...matrixCells].filter(Boolean));
+      gsap.to([stateWord, stateCopy].filter(Boolean), {
+        autoAlpha: 0,
+        yPercent: -34,
+        skewX: -5,
+        duration: 0.2,
+        stagger: 0.03,
+        ease: 'power2.in',
+        onComplete: () => {
+          writeMode(mode);
+          gsap.fromTo([stateWord, stateCopy].filter(Boolean), { autoAlpha: 0, yPercent: 45, skewX: 6 }, {
+            autoAlpha: 1,
+            yPercent: 0,
+            skewX: 0,
+            duration: 0.48,
+            stagger: 0.04,
+            ease: 'power3.out',
+            clearProps: 'opacity,visibility,transform'
+          });
+        }
+      });
+      if (stateIndex) gsap.fromTo(stateIndex, { autoAlpha: 0, x: -12 }, { autoAlpha: 1, x: 0, duration: 0.42, ease: 'power3.out', clearProps: 'opacity,visibility,transform' });
+      if (stateCode) gsap.fromTo(stateCode, { autoAlpha: 0, x: 12 }, { autoAlpha: 1, x: 0, duration: 0.42, ease: 'power3.out', clearProps: 'opacity,visibility,transform' });
+      if (pointerObject) gsap.fromTo(pointerObject, { scale: 0.94, rotationX: mode === 'motion' ? 5 : -3 }, {
+        scale: 1,
+        rotationX: 0,
+        duration: 0.68,
+        ease: 'back.out(1.35)'
+      });
+      if (matrixCells.length) {
+        gsap.fromTo(matrixCells, { scale: 0.88, rotationY: mode === 'code' ? -9 : 7, autoAlpha: 0.16 }, {
+          scale: 1,
+          rotationY: 0,
+          autoAlpha: 0.32,
+          duration: 0.58,
+          stagger: { each: 0.012, grid: [6, 6], from: mode === 'commerce' ? 'edges' : 'center' },
+          ease: 'power3.out',
+          clearProps: 'transform,opacity,visibility'
+        });
+      }
+    };
+
+    selectors.forEach((selector, index) => {
+      const mode = selector.dataset.studioSelect;
+      const handlePointer = () => {
+        if (finePointer.matches && !reducedMotion.matches) activateMode(mode);
+      };
+      const handleFocus = () => activateMode(mode);
+      const handleClick = () => activateMode(mode);
+      const handleKey = (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const backwards = ['ArrowLeft', 'ArrowUp'].includes(event.key);
+        const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? selectors.length - 1 : (index + (backwards ? -1 : 1) + selectors.length) % selectors.length;
+        selectors[nextIndex].focus();
+        activateMode(selectors[nextIndex].dataset.studioSelect);
+      };
+      selector.addEventListener('pointerenter', handlePointer, { passive: true });
+      selector.addEventListener('focus', handleFocus);
+      selector.addEventListener('click', handleClick);
+      selector.addEventListener('keydown', handleKey);
+      cleanupTasks.push(() => {
+        selector.removeEventListener('pointerenter', handlePointer);
+        selector.removeEventListener('focus', handleFocus);
+        selector.removeEventListener('click', handleClick);
+        selector.removeEventListener('keydown', handleKey);
+      });
+    });
+
+    if (surface) {
+      const handleSurfacePress = (event) => {
+        if (!finePointer.matches || reducedMotion.matches || event.button !== 0 || event.target.closest('button, a, input')) return;
+        const bounds = surface.getBoundingClientRect();
+        const impact = document.createElement('span');
+        impact.className = 'studio-impact';
+        impact.setAttribute('aria-hidden', 'true');
+        impact.style.left = `${event.clientX - bounds.left}px`;
+        impact.style.top = `${event.clientY - bounds.top}px`;
+        impact.addEventListener('animationend', () => impact.remove(), { once: true });
+        surface.append(impact);
+        if (canAnimate() && pointerObject) {
+          window.gsap.fromTo(pointerObject, { scale: 0.96 }, {
+            scale: 1.035,
+            duration: 0.18,
+            yoyo: true,
+            repeat: 1,
+            ease: 'power2.inOut',
+            onComplete: () => window.gsap.set(pointerObject, { scale: 1 })
+          });
+        }
+      };
+      surface.addEventListener('pointerdown', handleSurfacePress);
+      cleanupTasks.push(() => surface.removeEventListener('pointerdown', handleSurfacePress));
+    }
+
+    writeMode(currentMode);
+
+    signatureCleanup = () => {
+      cleanupTasks.forEach((cleanup) => cleanup());
+      $$('.studio-impact').forEach((impact) => impact.remove());
+    };
+  }
+
+  function initializeSitewideInteractions() {
+    sitewideCleanup?.();
+    const cleanupTasks = [];
+    const listen = (element, type, handler, options) => {
+      if (!element) return;
+      element.addEventListener(type, handler, options);
+      cleanupTasks.push(() => element.removeEventListener(type, handler, options));
+    };
+    const revealText = (element, text, direction = 1) => {
+      if (!element || element.textContent === text) return;
+      element.textContent = text;
+      if (!canAnimate()) return;
+      window.gsap.fromTo(element, { autoAlpha: 0, x: 12 * direction, skewX: 4 * direction }, {
+        autoAlpha: 1,
+        x: 0,
+        skewX: 0,
+        duration: 0.44,
+        ease: 'power3.out',
+        overwrite: true,
+        clearProps: 'opacity,visibility,transform'
+      });
+    };
+    const bindRovingKeys = (items, index, event, activate) => {
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return false;
+      event.preventDefault();
+      const backwards = ['ArrowLeft', 'ArrowUp'].includes(event.key);
+      const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (backwards ? -1 : 1) + items.length) % items.length;
+      items[nextIndex].focus();
+      activate(nextIndex);
+      return true;
+    };
+
+    const ambientLines = $('[data-ambient-lines]');
+    const ambientWaves = $('[data-ambient-waves]');
+    if (ambientLines && ambientWaves && canAnimate() && finePointer.matches && !mobileLayout.matches) {
+      const lineX = window.gsap.quickTo(ambientLines, 'x', { duration: 0.95, ease: 'power3.out' });
+      const lineY = window.gsap.quickTo(ambientLines, 'y', { duration: 0.95, ease: 'power3.out' });
+      const lineScaleY = window.gsap.quickTo(ambientLines, 'scaleY', { duration: 1.05, ease: 'power3.out' });
+      const waveX = window.gsap.quickTo(ambientWaves, 'x', { duration: 1.2, ease: 'power3.out' });
+      const waveY = window.gsap.quickTo(ambientWaves, 'y', { duration: 1.2, ease: 'power3.out' });
+      const handleAmbientMove = (event) => {
+        const x = event.clientX / Math.max(1, window.innerWidth) - 0.5;
+        const y = event.clientY / Math.max(1, window.innerHeight) - 0.5;
+        lineX(x * -34);
+        lineY(y * 28);
+        lineScaleY(1 + y * 0.13);
+        waveX(x * -46);
+        waveY(y * 34);
+      };
+      listen(document, 'pointermove', handleAmbientMove, { passive: true });
+      cleanupTasks.push(() => {
+        window.gsap.killTweensOf([ambientLines, ambientWaves]);
+        window.gsap.set([ambientLines, ambientWaves], { clearProps: 'x,y,scaleY' });
+      });
+    }
+
+    cleanupTasks.push(createTextMorphController($('[data-section-morph]'), 2200));
+
+    const bikeGallery = $('[data-biketech-gallery]');
+    const bikeButtons = $$('[data-biketech-focus]', $('[data-biketech-controls]') || document);
+    const bikeReadout = $('[data-biketech-readout]');
+    const bikeModes = {
+      before: '01 / BEFORE — EARLIER STOREFRONT',
+      after: '02 / AFTER — PREMIUM CATALOGUE',
+      mobile: '03 / MOBILE — PRODUCT DISCOVERY'
+    };
+    const activateBike = (mode) => {
+      if (!bikeGallery || !bikeModes[mode]) return;
+      bikeGallery.dataset.biketechActive = mode;
+      bikeButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.biketechFocus === mode)));
+      revealText(bikeReadout, bikeModes[mode], mode === 'before' ? -1 : 1);
+    };
+    bikeButtons.forEach((button, index) => {
+      const activate = () => activateBike(button.dataset.biketechFocus);
+      const handlePointer = () => { if (finePointer.matches && !reducedMotion.matches) activate(); };
+      const handleKey = (event) => bindRovingKeys(bikeButtons, index, event, (nextIndex) => activateBike(bikeButtons[nextIndex].dataset.biketechFocus));
+      listen(button, 'pointerenter', handlePointer, { passive: true });
+      listen(button, 'focus', activate);
+      listen(button, 'click', activate);
+      listen(button, 'keydown', handleKey);
+    });
+    activateBike(bikeGallery?.dataset.biketechActive || 'after');
+
+    const galleryButtons = $$('[data-gallery-focus]', $('[data-gallery-console]') || document);
+    const galleryTiles = $$('[data-gallery-kind]', $('[data-gallery-grid]') || document);
+    const galleryGrid = $('[data-gallery-grid]');
+    const galleryReadout = $('[data-gallery-readout]');
+    const coverPosition = $('[data-coverflow-position]');
+    const coverPrevious = $('[data-coverflow-previous]');
+    const coverNext = $('[data-coverflow-next]');
+    const galleryModes = {
+      all: 'VIEW / ALL — 11 SELECTED PIECES',
+      design: 'VIEW / DESIGN — 05 SELECTED PIECES',
+      ai: 'VIEW / AI MOTION — 03 SELECTED PIECES',
+      reel: 'VIEW / REELS — 03 SELECTED PIECES'
+    };
+    let galleryMode = 'all';
+    let coverIndex = 0;
+    let filteredTiles = galleryTiles;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragPointer = null;
+    let dragShift = 0;
+    let suppressCoverClick = false;
+
+    const renderCoverflow = () => {
+      if (!galleryGrid || !filteredTiles.length) return;
+      coverIndex = (coverIndex + filteredTiles.length) % filteredTiles.length;
+      const stageWidth = galleryGrid.clientWidth || window.innerWidth;
+      const step = mobileLayout.matches ? Math.min(178, stageWidth * 0.46) : Math.min(310, Math.max(178, stageWidth * 0.235));
+
+      galleryTiles.forEach((tile) => {
+        const position = filteredTiles.indexOf(tile);
+        const trigger = $('[data-viewer-item]', tile);
+        if (position < 0) {
+          tile.classList.add('cover-hidden');
+          tile.classList.remove('cover-current', 'cover-near', 'cover-far');
+          tile.inert = true;
+          if (trigger) trigger.tabIndex = -1;
+          return;
+        }
+
+        let offset = position - coverIndex;
+        if (offset > filteredTiles.length / 2) offset -= filteredTiles.length;
+        if (offset < -filteredTiles.length / 2) offset += filteredTiles.length;
+        const distance = Math.abs(offset);
+        const visible = distance <= 2;
+        tile.classList.toggle('cover-hidden', !visible);
+        tile.classList.toggle('cover-current', offset === 0);
+        tile.classList.toggle('cover-near', distance === 1);
+        tile.classList.toggle('cover-far', distance === 2);
+        tile.inert = !visible;
+        tile.style.setProperty('--cover-x', `${Math.round(offset * step)}px`);
+        tile.style.setProperty('--cover-y', `${Math.round(distance * (mobileLayout.matches ? 15 : 24))}px`);
+        tile.style.setProperty('--cover-z', `${Math.round(distance * -170)}px`);
+        tile.style.setProperty('--cover-rotate', `${offset * (mobileLayout.matches ? -11 : -19)}deg`);
+        tile.style.setProperty('--cover-rotate-z', `${offset * (mobileLayout.matches ? 1 : 1.8)}deg`);
+        tile.style.setProperty('--cover-scale', String(Math.max(0.68, 1 - distance * (mobileLayout.matches ? 0.14 : 0.12))));
+        tile.style.setProperty('--cover-opacity', String(distance === 0 ? 1 : distance === 1 ? 0.62 : 0.24));
+        tile.style.setProperty('--cover-z-index', String(20 - distance));
+        if (trigger) {
+          trigger.tabIndex = offset === 0 ? 0 : -1;
+        }
+      });
+
+      const activeTile = filteredTiles[coverIndex];
+      const activeTrigger = activeTile ? $('[data-viewer-item]', activeTile) : null;
+      if (coverPosition) coverPosition.textContent = `${String(coverIndex + 1).padStart(2, '0')} / ${String(filteredTiles.length).padStart(2, '0')}`;
+      if (activeTrigger) revealText(galleryReadout, `${String(coverIndex + 1).padStart(2, '0')} / ${activeTrigger.dataset.mediaTitle.toUpperCase()} — ${activeTrigger.dataset.mediaCategory.toUpperCase()}`);
+      if (coverPrevious) coverPrevious.disabled = filteredTiles.length < 2;
+      if (coverNext) coverNext.disabled = filteredTiles.length < 2;
+    };
+
+    const moveCoverflow = (direction) => {
+      if (!filteredTiles.length) return;
+      coverIndex = (coverIndex + direction + filteredTiles.length) % filteredTiles.length;
+      renderCoverflow();
+    };
+
+    const activateGallery = (mode) => {
+      if (!galleryModes[mode]) return;
+      galleryMode = mode;
+      filteredTiles = mode === 'all' ? galleryTiles : galleryTiles.filter((tile) => tile.dataset.galleryKind === mode);
+      coverIndex = 0;
+      galleryButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.galleryFocus === mode)));
+      galleryTiles.forEach((tile) => tile.classList.remove('is-muted', 'is-focused'));
+      renderCoverflow();
+    };
+    galleryButtons.forEach((button, index) => {
+      const activate = () => activateGallery(button.dataset.galleryFocus);
+      const handleKey = (event) => bindRovingKeys(galleryButtons, index, event, (nextIndex) => activateGallery(galleryButtons[nextIndex].dataset.galleryFocus));
+      listen(button, 'click', activate);
+      listen(button, 'focus', activate);
+      listen(button, 'keydown', handleKey);
+    });
+    galleryTiles.forEach((tile) => {
+      const trigger = $('[data-viewer-item]', tile);
+      if (!trigger) return;
+      const mediaWidth = Number(trigger.dataset.mediaWidth || 1);
+      const mediaHeight = Number(trigger.dataset.mediaHeight || 1);
+      tile.style.setProperty('--media-ratio', `${mediaWidth} / ${mediaHeight}`);
+    });
+    listen(coverPrevious, 'click', () => moveCoverflow(-1));
+    listen(coverNext, 'click', () => moveCoverflow(1));
+    listen(galleryGrid, 'keydown', (event) => {
+      if (event.key === 'ArrowLeft') { event.preventDefault(); moveCoverflow(-1); }
+      else if (event.key === 'ArrowRight') { event.preventDefault(); moveCoverflow(1); }
+      else if (event.key === 'Home') { event.preventDefault(); coverIndex = 0; renderCoverflow(); }
+      else if (event.key === 'End') { event.preventDefault(); coverIndex = filteredTiles.length - 1; renderCoverflow(); }
+    });
+    listen(galleryGrid, 'click', (event) => {
+      const tile = event.target.closest('[data-gallery-kind]');
+      if (!tile || tile.classList.contains('cover-current')) {
+        if (suppressCoverClick) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        return;
+      }
+      const nextIndex = filteredTiles.indexOf(tile);
+      if (nextIndex < 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      coverIndex = nextIndex;
+      renderCoverflow();
+    }, true);
+    listen(galleryGrid, 'pointerdown', (event) => {
+      if (event.button !== 0) return;
+      dragPointer = event.pointerId;
+      dragStartX = event.clientX;
+      dragStartY = event.clientY;
+      dragShift = 0;
+      galleryGrid.classList.add('is-dragging');
+      galleryGrid.setPointerCapture?.(event.pointerId);
+    });
+    listen(galleryGrid, 'pointermove', (event) => {
+      if (dragPointer !== event.pointerId) return;
+      dragShift = event.clientX - dragStartX;
+      if (Math.abs(dragShift) > 4) galleryGrid.style.setProperty('--drag-shift', `${Math.max(-90, Math.min(90, dragShift * 0.34))}px`);
+    }, { passive: true });
+    const finishCoverDrag = (event) => {
+      if (dragPointer === null || (event.pointerId != null && event.pointerId !== dragPointer)) return;
+      const deltaX = event.clientX == null ? dragShift : event.clientX - dragStartX;
+      const deltaY = event.clientY == null ? 0 : event.clientY - dragStartY;
+      galleryGrid.releasePointerCapture?.(dragPointer);
+      dragPointer = null;
+      galleryGrid.classList.remove('is-dragging');
+      galleryGrid.style.setProperty('--drag-shift', '0px');
+      if (Math.abs(deltaX) > 42 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        suppressCoverClick = true;
+        moveCoverflow(deltaX < 0 ? 1 : -1);
+        setTimeout(() => { suppressCoverClick = false; }, 0);
+      }
+    };
+    listen(galleryGrid, 'pointerup', finishCoverDrag);
+    listen(galleryGrid, 'pointercancel', finishCoverDrag);
+    let coverResizeFrame = 0;
+    const handleCoverResize = () => {
+      cancelAnimationFrame(coverResizeFrame);
+      coverResizeFrame = requestAnimationFrame(renderCoverflow);
+    };
+    listen(window, 'resize', handleCoverResize, { passive: true });
+    cleanupTasks.push(() => cancelAnimationFrame(coverResizeFrame));
+    activateGallery('all');
+
+    const methodConstellation = $('[data-method-constellation]');
+    const methodItems = $$('.method-list li');
+    const methodWord = $('[data-method-word]');
+    const methodIndex = $('[data-method-index]');
+    const activateMethod = (index) => {
+      const item = methodItems[index];
+      if (!item || !methodConstellation) return;
+      methodConstellation.dataset.methodActive = String(index);
+      methodItems.forEach((step, stepIndex) => {
+        step.classList.toggle('is-current', stepIndex === index);
+        step.setAttribute('aria-pressed', String(stepIndex === index));
+      });
+      if (methodIndex) methodIndex.textContent = `METHOD / ${String(index + 1).padStart(2, '0')}`;
+      revealText(methodWord, $('h3', item)?.textContent.toUpperCase() || 'METHOD', index % 2 ? 1 : -1);
+    };
+    methodItems.forEach((item, index) => {
+      item.tabIndex = 0;
+      item.setAttribute('role', 'button');
+      item.setAttribute('aria-pressed', 'false');
+      const activate = () => activateMethod(index);
+      const handlePointer = () => { if (finePointer.matches && !reducedMotion.matches) activate(); };
+      const handleKey = (event) => {
+        if (bindRovingKeys(methodItems, index, event, activateMethod)) return;
+        if (!['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        activate();
+      };
+      listen(item, 'pointerenter', handlePointer, { passive: true });
+      listen(item, 'focus', activate);
+      listen(item, 'click', activate);
+      listen(item, 'keydown', handleKey);
+    });
+    activateMethod(0);
+
+    const toolset = $('.toolset');
+    const experienceItems = $$('[data-experience-step]');
+    const experienceWord = $('[data-experience-word]');
+    const experienceIndex = $('[data-experience-index]');
+    const activateExperience = (index) => {
+      const item = experienceItems[index];
+      if (!item) return;
+      experienceItems.forEach((entry, entryIndex) => {
+        entry.classList.toggle('is-current', entryIndex === index);
+        entry.setAttribute('aria-pressed', String(entryIndex === index));
+      });
+      if (experienceIndex) experienceIndex.textContent = `ROLE / ${String(index + 1).padStart(2, '0')}`;
+      revealText(experienceWord, item.dataset.experienceWord || 'ROLE', index % 2 ? 1 : -1);
+      toolset?.dispatchEvent(new CustomEvent('toolset:activate', { detail: { index: Number(item.dataset.experienceTool || 0) } }));
+    };
+    experienceItems.forEach((item, index) => {
+      item.tabIndex = 0;
+      item.setAttribute('role', 'button');
+      item.setAttribute('aria-pressed', 'false');
+      const activate = () => activateExperience(index);
+      const handlePointer = () => { if (finePointer.matches && !reducedMotion.matches) activate(); };
+      const handleKey = (event) => {
+        if (bindRovingKeys(experienceItems, index, event, activateExperience)) return;
+        if (!['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        activate();
+      };
+      listen(item, 'pointerenter', handlePointer, { passive: true });
+      listen(item, 'focus', activate);
+      listen(item, 'click', activate);
+      listen(item, 'keydown', handleKey);
+    });
+    activateExperience(0);
+
+    const credentialItems = $$('.education-list article[data-credential-word], .language-list article[data-credential-word]');
+    const credentialWord = $('[data-credential-word]', $('.credentials-signal') || document);
+    const credentialIndex = $('[data-credential-index]');
+    const credentialCopy = $('[data-credential-copy]', $('.credentials-signal') || document);
+    const activateCredential = (index) => {
+      const item = credentialItems[index];
+      if (!item) return;
+      credentialItems.forEach((entry, entryIndex) => {
+        entry.classList.toggle('is-current', entryIndex === index);
+        entry.setAttribute('aria-pressed', String(entryIndex === index));
+      });
+      if (credentialIndex) credentialIndex.textContent = `SELECT / ${String(index + 1).padStart(2, '0')}`;
+      revealText(credentialWord, item.dataset.credentialWord, index % 2 ? 1 : -1);
+      revealText(credentialCopy, item.dataset.credentialCopy || 'Selected credential', index % 2 ? -1 : 1);
+    };
+    credentialItems.forEach((item, index) => {
+      item.tabIndex = 0;
+      item.setAttribute('role', 'button');
+      item.setAttribute('aria-pressed', 'false');
+      const activate = () => activateCredential(index);
+      const handlePointer = () => { if (finePointer.matches && !reducedMotion.matches) activate(); };
+      const handleKey = (event) => {
+        if (bindRovingKeys(credentialItems, index, event, activateCredential)) return;
+        if (!['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        activate();
+      };
+      listen(item, 'pointerenter', handlePointer, { passive: true });
+      listen(item, 'focus', activate);
+      listen(item, 'click', activate);
+      listen(item, 'keydown', handleKey);
+    });
+    activateCredential(0);
+
+    $$('.outcome-statement, .toolset-stage, .credentials-signal').forEach((panel) => {
+      let panelBounds = null;
+      const activateGlow = () => {
+        panelBounds = panel.getBoundingClientRect();
+        panel.classList.add('is-glow-active');
+      };
+      const moveGlow = (event) => {
+        if (!panelBounds) activateGlow();
+        panel.style.setProperty('--glow-x', `${Math.round(event.clientX - panelBounds.left)}px`);
+        panel.style.setProperty('--glow-y', `${Math.round(event.clientY - panelBounds.top)}px`);
+      };
+      const deactivateGlow = () => {
+        panelBounds = null;
+        panel.classList.remove('is-glow-active');
+      };
+      listen(panel, 'pointerenter', activateGlow, { passive: true });
+      listen(panel, 'pointermove', moveGlow, { passive: true });
+      listen(panel, 'pointerleave', deactivateGlow, { passive: true });
+      listen(panel, 'focusin', activateGlow);
+      listen(panel, 'focusout', deactivateGlow);
+      cleanupTasks.push(() => {
+        panel.classList.remove('is-glow-active');
+        panel.style.removeProperty('--glow-x');
+        panel.style.removeProperty('--glow-y');
+      });
+    });
+
+    const contact = $('.contact');
+    const contactWaves = $('[data-contact-waves]');
+    if (contact && contactWaves && canAnimate() && !mobileLayout.matches) {
+      let contactBounds = null;
+      const moveX = window.gsap.quickTo(contactWaves, 'x', { duration: 0.8, ease: 'power3.out' });
+      const moveY = window.gsap.quickTo(contactWaves, 'y', { duration: 0.8, ease: 'power3.out' });
+      const cacheBounds = () => { contactBounds = contact.getBoundingClientRect(); };
+      const handleMove = (event) => {
+        if (!contactBounds) cacheBounds();
+        const x = (event.clientX - contactBounds.left) / Math.max(1, contactBounds.width) - 0.5;
+        const y = (event.clientY - contactBounds.top) / Math.max(1, contactBounds.height) - 0.5;
+        moveX(x * 42);
+        moveY(y * 28);
+      };
+      const reset = () => { contactBounds = null; moveX(0); moveY(0); };
+      listen(contact, 'pointerenter', cacheBounds, { passive: true });
+      listen(contact, 'pointermove', handleMove, { passive: true });
+      listen(contact, 'pointerleave', reset, { passive: true });
+      listen(window, 'resize', cacheBounds, { passive: true });
+      cleanupTasks.push(() => {
+        window.gsap.killTweensOf(contactWaves);
+        window.gsap.set(contactWaves, { clearProps: 'x,y' });
+      });
+    }
+    if (contact && !reducedMotion.matches) {
+      const handleContactPress = (event) => {
+        if (event.button !== 0 || event.target.closest('a, button')) return;
+        const bounds = contact.getBoundingClientRect();
+        const impact = document.createElement('span');
+        impact.className = 'contact-impact';
+        impact.setAttribute('aria-hidden', 'true');
+        impact.style.left = `${event.clientX - bounds.left}px`;
+        impact.style.top = `${event.clientY - bounds.top}px`;
+        impact.addEventListener('animationend', () => impact.remove(), { once: true });
+        contact.append(impact);
+        if (canAnimate()) {
+          window.gsap.fromTo($$('i', contactWaves), { scale: 0.95 }, {
+            scale: 1,
+            duration: 0.7,
+            stagger: 0.045,
+            ease: 'elastic.out(1, 0.55)',
+            clearProps: 'scale'
+          });
+        }
+      };
+      listen(contact, 'pointerdown', handleContactPress);
+    }
+
+    sitewideCleanup = () => {
+      cleanupTasks.forEach((cleanup) => cleanup());
+      $$('.contact-impact').forEach((impact) => impact.remove());
+    };
   }
 
   function initializeComparisons() {
@@ -585,79 +1648,13 @@
       });
     });
 
-    const morph = $('[data-text-morph]');
-    let morphTimer = 0;
-    let morphIndex = 0;
-    let morphVisible = false;
-    const morphWords = morph?.dataset.morphWords?.split('|').map((word) => word.trim()).filter(Boolean) || [];
-
-    const stopMorph = () => {
-      window.clearTimeout(morphTimer);
-      morphTimer = 0;
-      window.gsap?.killTweensOf(morph);
-    };
-
-    const scheduleMorph = () => {
-      stopMorph();
-      if (!morph || morphWords.length < 2 || reducedMotion.matches || !morphVisible || document.hidden) return;
-      morphTimer = window.setTimeout(() => {
-        const swap = () => {
-          morphIndex = (morphIndex + 1) % morphWords.length;
-          morph.textContent = morphWords[morphIndex];
-          if (canAnimate()) {
-            window.gsap.fromTo(morph, { autoAlpha: 0, y: 10, clipPath: 'inset(100% 0 0 0)' }, {
-              autoAlpha: 1,
-              y: 0,
-              clipPath: 'inset(0% 0 0 0)',
-              duration: 0.48,
-              ease: 'power3.out',
-              clearProps: 'opacity,visibility,transform,clip-path',
-              onComplete: scheduleMorph
-            });
-          } else scheduleMorph();
-        };
-
-        if (canAnimate()) {
-          window.gsap.to(morph, {
-            autoAlpha: 0,
-            y: -9,
-            clipPath: 'inset(0 0 100% 0)',
-            duration: 0.28,
-            ease: 'power2.inOut',
-            onComplete: swap
-          });
-        } else swap();
-      }, 2600);
-    };
-
-    let morphObserver = null;
-    if (morph && morphWords.length > 1) {
-      if ('IntersectionObserver' in window) {
-        morphObserver = new IntersectionObserver(([entry]) => {
-          morphVisible = Boolean(entry?.isIntersecting);
-          if (morphVisible) scheduleMorph();
-          else stopMorph();
-        }, { threshold: 0.2 });
-        morphObserver.observe(morph);
-      } else {
-        morphVisible = true;
-        scheduleMorph();
-      }
-    }
-
-    const handleVisibility = () => {
-      if (document.hidden) stopMorph();
-      else scheduleMorph();
-    };
     const handleReducedMotion = () => {
       if (reducedMotion.matches) {
-        stopMorph();
-        if (morph && morphWords.length) morph.textContent = morphWords[0];
         scrambleTargets.forEach((element) => { element.textContent = element.dataset.scrambleText; });
-      } else scheduleMorph();
+      }
     };
-    document.addEventListener('visibilitychange', handleVisibility);
     if ('addEventListener' in reducedMotion) reducedMotion.addEventListener('change', handleReducedMotion);
+    cleanupTasks.push(createTextMorphController($('[data-text-morph]'), 2500));
 
     const handlePress = (event) => {
       if (!finePointer.matches || reducedMotion.matches || event.button !== 0) return;
@@ -676,9 +1673,6 @@
 
     kineticCleanup = () => {
       scrambleObserver?.disconnect();
-      morphObserver?.disconnect();
-      stopMorph();
-      document.removeEventListener('visibilitychange', handleVisibility);
       document.removeEventListener('pointerdown', handlePress);
       if ('removeEventListener' in reducedMotion) reducedMotion.removeEventListener('change', handleReducedMotion);
       cleanupTasks.forEach((cleanup) => cleanup());
@@ -878,13 +1872,14 @@
     if (!hero || !object) return;
 
     let bounds = null;
+    const geometry = $('.hero-geometry', object);
     const grid = $('[data-field-layer="grid"]', object);
     const orbitA = $('[data-field-layer="orbit-a"]', object);
     const orbitB = $('[data-field-layer="orbit-b"]', object);
     const particles = $('[data-field-layer="particles"]', object);
-    const moveX = window.gsap.quickTo(object, 'x', { duration: 0.8, ease: 'power3.out' });
-    const moveY = window.gsap.quickTo(object, 'y', { duration: 0.8, ease: 'power3.out' });
-    const rotate = window.gsap.quickTo(object, 'rotation', { duration: 1, ease: 'power3.out' });
+    const moveX = geometry ? window.gsap.quickTo(geometry, 'x', { duration: 0.8, ease: 'power3.out' }) : null;
+    const moveY = geometry ? window.gsap.quickTo(geometry, 'y', { duration: 0.8, ease: 'power3.out' }) : null;
+    const rotate = geometry ? window.gsap.quickTo(geometry, 'rotation', { duration: 1, ease: 'power3.out' }) : null;
     const gridX = grid ? window.gsap.quickTo(grid, 'x', { duration: 1.1, ease: 'power3.out' }) : null;
     const gridY = grid ? window.gsap.quickTo(grid, 'y', { duration: 1.1, ease: 'power3.out' }) : null;
     const orbitARotate = orbitA ? window.gsap.quickTo(orbitA, 'rotation', { duration: 1.25, ease: 'power3.out' }) : null;
@@ -897,9 +1892,9 @@
       if (!bounds) cacheBounds();
       const x = ((event.clientX - bounds.left) / bounds.width - 0.5);
       const y = ((event.clientY - bounds.top) / bounds.height - 0.5);
-      moveX(x * 24);
-      moveY(y * 18);
-      rotate(x * 2.6);
+      moveX?.(x * 18);
+      moveY?.(y * 14);
+      rotate?.(x * 2.2);
       gridX?.(x * -18);
       gridY?.(y * -18);
       orbitARotate?.(x * 12 + y * 4);
@@ -908,9 +1903,9 @@
       particlesY?.(y * 30);
     };
     const reset = () => {
-      moveX(0);
-      moveY(0);
-      rotate(0);
+      moveX?.(0);
+      moveY?.(0);
+      rotate?.(0);
       gridX?.(0);
       gridY?.(0);
       orbitARotate?.(0);
@@ -929,7 +1924,7 @@
       hero.removeEventListener('pointermove', handleMove);
       hero.removeEventListener('pointerleave', reset);
       window.removeEventListener('resize', cacheBounds);
-      window.gsap?.set(object, { clearProps: 'x,y,rotation' });
+      window.gsap?.set(geometry, { clearProps: 'x,y,rotation' });
       window.gsap?.set([grid, orbitA, orbitB, particles].filter(Boolean), { clearProps: 'x,y,rotation' });
     };
   }
@@ -1003,51 +1998,70 @@
       });
     }
 
-    $$('.editorial-heading h2[data-split-reveal], .about-statement h2[data-split-reveal], .credentials-intro h2[data-split-reveal], .contact-layout h2[data-split-reveal]').forEach((heading) => {
-      const words = $$('.motion-word > span', heading);
-      if (!words.length) return;
-      let headingBounds = null;
-      const wordMotion = words.map((word) => ({
-        word,
-        y: gsap.quickTo(word, 'y', { duration: 0.44, ease: 'power3.out' }),
-        rotation: gsap.quickTo(word, 'rotation', { duration: 0.5, ease: 'power3.out' }),
-        scaleY: gsap.quickTo(word, 'scaleY', { duration: 0.5, ease: 'power3.out' })
-      }));
+    const dynamicWeight = $('[data-dynamic-weight]');
+    const weightCharacters = dynamicWeight ? $$('.weight-char', dynamicWeight) : [];
+    if (dynamicWeight && weightCharacters.length) {
+      const baseWeight = 540;
+      const peakWeight = 760;
+      let resizeFrame = 0;
 
-      const cacheHeadingBounds = () => { headingBounds = heading.getBoundingClientRect(); };
-      const handleHeadingMove = (event) => {
-        if (!headingBounds) cacheHeadingBounds();
-        const cursor = (event.clientX - headingBounds.left) / Math.max(1, headingBounds.width);
-        wordMotion.forEach((motion, index) => {
-          const wordPosition = words.length === 1 ? 0.5 : index / (words.length - 1);
-          const influence = Math.max(0, 1 - Math.abs(cursor - wordPosition) * 2.4);
-          motion.y(influence * -7);
-          motion.rotation((cursor - wordPosition) * influence * 2.8);
-          motion.scaleY(1 + influence * 0.045);
-        });
+      const writeWeight = (character, value) => {
+        const rounded = Math.round(value);
+        character.style.setProperty('--dynamic-weight', String(rounded));
+        character.style.fontWeight = String(rounded);
+        character.style.fontVariationSettings = `"wght" ${rounded}`;
       };
-      const resetHeading = () => {
-        headingBounds = null;
-        wordMotion.forEach((motion) => {
-          motion.y(0);
-          motion.rotation(0);
-          motion.scaleY(1);
+
+      const reserveWeightGeometry = () => {
+        weightCharacters.forEach((character) => {
+          character.style.removeProperty('--weight-slot');
+          writeWeight(character, peakWeight);
+        });
+        const slots = weightCharacters.map((character) => Math.ceil(character.getBoundingClientRect().width * 100) / 100);
+        weightCharacters.forEach((character, index) => {
+          writeWeight(character, baseWeight);
+          character.style.setProperty('--weight-slot', `${slots[index]}px`);
         });
       };
 
-      heading.addEventListener('pointerenter', cacheHeadingBounds, { passive: true });
-      heading.addEventListener('pointermove', handleHeadingMove, { passive: true });
-      heading.addEventListener('pointerleave', resetHeading, { passive: true });
+      const playWeightWave = () => {
+        gsap.killTweensOf(weightCharacters);
+        weightCharacters.forEach((character) => writeWeight(character, baseWeight));
+        gsap.to(weightCharacters, {
+          fontWeight: peakWeight,
+          fontVariationSettings: `"wght" ${peakWeight}`,
+          duration: 0.34,
+          stagger: { each: 0.035, from: 'start', yoyo: true, repeat: 1 },
+          ease: 'power2.inOut',
+          onComplete: () => {
+            weightCharacters.forEach((character) => writeWeight(character, baseWeight));
+          }
+        });
+      };
+
+      const handleWeightResize = () => {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(reserveWeightGeometry);
+      };
+
+      reserveWeightGeometry();
+      dynamicWeight.addEventListener('pointerenter', playWeightWave, { passive: true });
+      window.addEventListener('resize', handleWeightResize, { passive: true });
       cleanupTasks.push(() => {
-        heading.removeEventListener('pointerenter', cacheHeadingBounds);
-        heading.removeEventListener('pointermove', handleHeadingMove);
-        heading.removeEventListener('pointerleave', resetHeading);
-        gsap.killTweensOf(words);
-        gsap.set(words, { clearProps: 'y,rotation,scaleY' });
+        cancelAnimationFrame(resizeFrame);
+        dynamicWeight.removeEventListener('pointerenter', playWeightWave);
+        window.removeEventListener('resize', handleWeightResize);
+        gsap.killTweensOf(weightCharacters);
+        weightCharacters.forEach((character) => {
+          character.style.removeProperty('--dynamic-weight');
+          character.style.removeProperty('--weight-slot');
+          character.style.removeProperty('font-weight');
+          character.style.removeProperty('font-variation-settings');
+        });
       });
-    });
+    }
 
-    const surfaces = $$('.project-screen, .btm-frame, .creative-tile > button');
+    const surfaces = $$('.project-screen, .creative-tile > button');
 
     surfaces.forEach((surface) => {
       surface.classList.add('motion-surface');
@@ -1212,18 +2226,6 @@
             scrollTrigger: { trigger: heading, start: 'top 90%', once: true }
           });
 
-          const brushPaths = $$('.motion-brush path', heading);
-          if (brushPaths.length) {
-            gsap.from(brushPaths, {
-              strokeDasharray: 1,
-              strokeDashoffset: 1,
-              duration: 0.9,
-              stagger: 0.1,
-              delay: 0.26,
-              ease: 'power2.inOut',
-              scrollTrigger: { trigger: heading, start: 'top 90%', once: true }
-            });
-          }
         });
 
         $$('[data-motion-group]').forEach((group, index) => {
@@ -1272,6 +2274,26 @@
             duration: 0.75,
             ease: 'power3.out',
             scrollTrigger: { trigger: number, start: 'top 92%', once: true }
+          });
+        });
+
+        [
+          ['.project-switchboard a', '.project-switchboard', desktop ? 46 : 20],
+          ['.biketech-focusbar > *', '.biketech-focusbar', desktop ? -34 : -16],
+          ['.creative-console > *', '.creative-console', desktop ? 38 : 18],
+          ['.experience-readout > *', '.experience-readout', desktop ? -38 : -18],
+          ['.credentials-signal > *', '.credentials-signal', desktop ? 34 : 16],
+          ['.contact-instruction', '.contact-layout', desktop ? 26 : 12]
+        ].forEach(([targets, trigger, offset], groupIndex) => {
+          if (!$(trigger)) return;
+          gsap.from(targets, {
+            autoAlpha: 0,
+            x: groupIndex % 2 ? -offset : offset,
+            clipPath: groupIndex % 2 ? 'inset(0 100% 0 0)' : 'inset(0 0 0 100%)',
+            duration: desktop ? 0.76 : 0.54,
+            stagger: desktop ? 0.08 : 0.05,
+            ease: 'power3.out',
+            scrollTrigger: { trigger, start: 'top 88%', once: true }
           });
         });
 
@@ -1408,6 +2430,7 @@
           duration: 0.95,
           stagger: 0.13,
           ease: 'power3.out',
+          clearProps: 'opacity,visibility,transform,clip-path',
           scrollTrigger: { trigger: '.biketech-gallery', start: 'top 84%', once: true }
         });
 
@@ -1429,15 +2452,15 @@
           scrollTrigger: { trigger: '.biketech-gallery', start: 'top 84%', once: true }
         });
 
-        gsap.from('.creative-grid .creative-tile', {
+        gsap.from('.creative-grid', {
           autoAlpha: 0,
           y: desktop ? 70 : 30,
           rotationX: desktop ? 7 : 0,
           transformOrigin: '50% 100%',
           clipPath: 'inset(0 0 100% 0 round 8px)',
           duration: desktop ? 0.9 : 0.62,
-          stagger: desktop ? 0.11 : 0.06,
           ease: 'power3.out',
+          clearProps: 'opacity,visibility,transform,clip-path',
           scrollTrigger: { trigger: '.creative-grid', start: 'top 86%', once: true }
         });
 
@@ -1587,20 +2610,6 @@
           scrollTrigger: { trigger: '.method-list', start: 'top 82%', once: true }
         });
 
-        const methodItems = $$('.method-list li');
-        const setCurrentMethod = (current) => {
-          methodItems.forEach((item) => item.classList.toggle('is-current', item === current));
-        };
-        methodItems.forEach((item) => {
-          ScrollTrigger.create({
-            trigger: item,
-            start: 'top 58%',
-            end: 'bottom 48%',
-            onEnter: () => setCurrentMethod(item),
-            onEnterBack: () => setCurrentMethod(item)
-          });
-        });
-
         gsap.from('.about-annotation', {
           autoAlpha: 0,
           x: desktop ? -48 : -20,
@@ -1719,11 +2728,6 @@
             ease: 'none',
             scrollTrigger: { trigger: '.rodociclo-stage', start: 'top bottom', end: 'bottom top', scrub: 0.55 }
           });
-          gsap.to('.btm-before', {
-            yPercent: -7,
-            ease: 'none',
-            scrollTrigger: { trigger: '.biketech-gallery', start: 'top bottom', end: 'bottom top', scrub: 0.6 }
-          });
           gsap.to('.hero-object', {
             y: 44,
             ease: 'none',
@@ -1773,24 +2777,6 @@
             scrollTrigger: { trigger: '.contact', start: 'top bottom', end: 'bottom top', scrub: 0.6 }
           });
 
-          const galleryDriftUp = gsap.utils.toArray('.tile-tall, .tile-small, .tile-reel-three');
-          const galleryDriftDown = gsap.utils.toArray('.tile-large, .tile-reel-two');
-
-          if (galleryDriftUp.length) {
-            gsap.to(galleryDriftUp, {
-              yPercent: -3.5,
-              ease: 'none',
-              scrollTrigger: { trigger: '.creative-grid', start: 'top bottom', end: 'bottom top', scrub: 0.45 }
-            });
-          }
-
-          if (galleryDriftDown.length) {
-            gsap.fromTo(galleryDriftDown, { yPercent: -1.5 }, {
-              yPercent: 2.5,
-              ease: 'none',
-              scrollTrigger: { trigger: '.creative-grid', start: 'top bottom', end: 'bottom top', scrub: 0.45 }
-            });
-          }
         }
 
         if (desktop) {
@@ -1805,7 +2791,7 @@
         }
 
         return () => {
-          methodItems.forEach((item) => item.classList.remove('is-current'));
+          $$('.method-list li').forEach((item) => item.classList.remove('is-current'));
           pointerCleanup?.();
           pointerCleanup = null;
           interactionCleanup?.();
@@ -1837,27 +2823,43 @@
     });
 
     const handleMotionPreference = () => {
+      signatureCleanup?.();
+      signatureCleanup = null;
+      sitewideCleanup?.();
+      sitewideCleanup = null;
       destroyMotion();
+      initializeSignatureInteractions();
+      initializeSitewideInteractions();
       if (!reducedMotion.matches) initializeMotion();
     };
     if ('addEventListener' in reducedMotion) reducedMotion.addEventListener('change', handleMotionPreference);
     else if ('addListener' in reducedMotion) reducedMotion.addListener(handleMotionPreference);
 
     window.addEventListener('pagehide', () => {
+      fieldCleanup?.();
+      fieldCleanup = null;
       kineticCleanup?.();
       kineticCleanup = null;
+      signatureCleanup?.();
+      signatureCleanup = null;
+      sitewideCleanup?.();
+      sitewideCleanup = null;
       destroyMotion();
     }, { once: true });
   }
 
   prepareTextReveals();
   prepareHeroWords();
+  prepareDynamicWeightText();
   prepareMotionDecorations();
   initializeTheme();
   initializeProfileAvatar();
   initializeNavigation();
   initializeCaseStudies();
   initializeToolsetInteractions();
+  initializeSignatureInteractions();
+  initializeSitewideInteractions();
+  fieldCleanup = initializeKineticField();
   initializeComparisons();
   initializeKineticDetails();
   initializeInlineMedia();

@@ -18,7 +18,7 @@
   <meta name="twitter:description" content="Digital products and commerce experiences designed from strategy through implementation.">
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23050505'/%3E%3Cpath d='M17 45 29 17h6l12 28h-7l-2.5-6H26L23.5 45H17Zm11.2-12h7.1l-3.5-8.8-3.6 8.8Z' fill='%23F5F5F7'/%3E%3Cpath d='M39 17h8v6h-8z' fill='%23E32636'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=20260810c">
+  <link rel="stylesheet" href="style.css?v=20260810y">
 
   <script>
     (() => {
@@ -34,7 +34,7 @@
   </script>
   <script src="assets/vendor/gsap.min.js" defer></script>
   <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
-  <script src="script.js?v=20260810c" defer></script>
+  <script src="script.js?v=20260810y" defer></script>
 
   <script type="application/ld+json">
   {
@@ -104,8 +104,9 @@
           <p class="eyebrow">Product &amp; Visual Designer <span>·</span> Porto Alegre, Brazil</p>
           <h1 id="hero-title" aria-label="I design digital experiences and build them into reality.">
             <span class="hero-line"><span>I design digital</span></span>
-            <span class="hero-line hero-line-offset"><span>experiences and build</span></span>
-            <span class="hero-line"><span>them into <em>reality.</em></span></span>
+            <span class="hero-line hero-line-offset"><span>experiences</span></span>
+            <span class="hero-line"><span>and build them</span></span>
+            <span class="hero-line hero-line-closing"><span>into <em>reality.</em></span></span>
           </h1>
           <p class="hero-lead">Product design, e-commerce, visual systems and AI-assisted development — connecting user needs, business goals and technical implementation.</p>
 
@@ -122,18 +123,24 @@
           </div>
         </div>
 
-        <div class="hero-studio" aria-label="Artur's working disciplines">
+        <div class="hero-studio" aria-label="Artur's interactive working disciplines" data-studio-surface data-studio-active="design">
           <p class="hero-mode" aria-label="Working across product systems, commerce experiences, visual narratives and working prototypes">
             <span data-scramble>Working across</span>
             <strong data-text-morph data-morph-words="Product systems|Commerce experiences|Visual narratives|Working prototypes">Product systems</strong>
           </p>
-          <p class="studio-note">Visual thinking,<br>technical making.</p>
+          <p class="studio-note" data-dynamic-weight>Visual thinking,<br>technical making.</p>
           <ul class="discipline-list" aria-label="Disciplines">
-            <li><span>01</span>Design</li>
-            <li><span>02</span>Code</li>
-            <li><span>03</span>Motion</li>
-            <li><span>04</span>Commerce</li>
+            <li><button type="button" aria-pressed="true" aria-label="Activate Design mode — Visual systems with a reason" data-studio-select="design"><span>01</span>Design</button></li>
+            <li><button type="button" aria-pressed="false" aria-label="Activate Code mode — Prototypes built to survive production" data-studio-select="code"><span>02</span>Code</button></li>
+            <li><button type="button" aria-pressed="false" aria-label="Activate Motion mode — Movement that explains and guides" data-studio-select="motion"><span>03</span>Motion</button></li>
+            <li><button type="button" aria-pressed="false" aria-label="Activate Commerce mode — Flows connected to customer decisions" data-studio-select="commerce"><span>04</span>Commerce</button></li>
           </ul>
+
+          <div class="studio-state" aria-hidden="true" data-studio-state>
+            <span data-studio-index>MODE / 01</span>
+            <strong data-studio-word>DESIGN</strong>
+            <p data-studio-copy>Visual systems with a reason.</p>
+          </div>
 
           <div class="hero-object" aria-hidden="true" data-pointer-object>
             <svg class="hero-geometry" viewBox="0 0 420 420" role="presentation">
@@ -162,7 +169,7 @@
                 <circle class="geometry-dot geometry-dot-muted" cx="119" cy="331" r="3"></circle>
               </g>
             </svg>
-            <span class="object-code" data-scramble>INTERACTIVE / POA</span>
+            <span class="object-code" data-studio-code>INTERACTIVE / DESIGN</span>
             <span class="object-readout">POINTER FIELD · SVG</span>
           </div>
 
@@ -194,7 +201,12 @@
           <span class="heading-rule" aria-hidden="true"></span>
         </header>
 
-        <article class="project project-rodociclo" aria-labelledby="rodociclo-title" data-project="rodociclo">
+        <nav class="project-switchboard" aria-label="Selected project chapters" data-project-switchboard>
+          <a href="#project-rodociclo"><span>01</span><strong>Rodociclo</strong><i>Reconstruction</i></a>
+          <a href="#project-biketech"><span>02</span><strong>Bike Tech Moinhos</strong><i>Catalogue system</i></a>
+        </nav>
+
+        <article class="project project-rodociclo" id="project-rodociclo" aria-labelledby="rodociclo-title" data-project="rodociclo">
           <div class="project-side-note" aria-hidden="true">RECONSTRUCTION / COMMERCE / 01</div>
           <header class="project-heading" data-motion-group>
             <div class="project-kicker"><span>01</span><p data-scramble>Bicycle e-commerce · Tray</p></div>
@@ -286,7 +298,7 @@
           </div>
         </article>
 
-        <article class="project project-biketech" aria-labelledby="biketech-title" data-project="biketech">
+        <article class="project project-biketech" id="project-biketech" aria-labelledby="biketech-title" data-project="biketech">
           <div class="biketech-intro" data-motion-group>
             <p class="project-index-large" aria-hidden="true">02</p>
             <div class="biketech-title-block">
@@ -296,7 +308,17 @@
             <p class="project-summary">A complete redesign and implementation of a premium bicycle e-commerce experience, focused on catalogue organization, product discovery, responsiveness, visual consistency and customer purchasing flows.</p>
           </div>
 
-          <div class="biketech-gallery" data-motion-group>
+          <div class="biketech-focusbar" data-biketech-controls>
+            <p>Choose the frame in focus</p>
+            <div role="group" aria-label="Bike Tech image focus">
+              <button type="button" aria-pressed="false" data-biketech-focus="before"><span>01</span>Before</button>
+              <button type="button" aria-pressed="true" data-biketech-focus="after"><span>02</span>After</button>
+              <button type="button" aria-pressed="false" data-biketech-focus="mobile"><span>03</span>Mobile</button>
+            </div>
+            <span aria-live="polite" data-biketech-readout>02 / AFTER — PREMIUM CATALOGUE</span>
+          </div>
+
+          <div class="biketech-gallery" data-biketech-gallery data-biketech-active="after" data-motion-group>
             <button class="btm-frame btm-before media-trigger" type="button" data-viewer-item data-media-kind="image" data-media-ready="true" data-media-title="Bike Tech Moinhos homepage before the redesign" data-media-category="Before" data-media-src="assets/images/biketech-before.webp" data-media-alt="Bike Tech Moinhos homepage before the redesign" data-media-width="1600" data-media-height="906">
               <span class="media-fallback"><small>01 / BEFORE</small><strong>Earlier storefront</strong><code>assets/images/biketech-before.webp</code><em>Open ↗</em></span>
             </button>
@@ -360,68 +382,83 @@
           <p class="section-index" data-section-number>03 / 07</p>
           <h2 id="creative-title" data-split-reveal>Visual systems<br><em>in motion.</em></h2>
           <p>Before focusing on digital products and e-commerce, I developed years of experience across visual design, image manipulation, video editing, motion and social content.</p>
-          <span data-scramble>Photoshop · After Effects · CapCut</span>
+          <span class="creative-morph-line"><i>Photoshop · After Effects · CapCut</i><strong data-section-morph data-morph-words="VISUAL DESIGN|MOTION DESIGN|AI FILM|VIDEO EDITING">VISUAL DESIGN</strong></span>
         </header>
 
+        <div class="creative-console" data-gallery-console>
+          <div role="group" aria-label="Focus the creative gallery">
+            <button type="button" aria-pressed="true" data-gallery-focus="all">All <span>11</span></button>
+            <button type="button" aria-pressed="false" data-gallery-focus="design">Design <span>05</span></button>
+            <button type="button" aria-pressed="false" data-gallery-focus="ai">AI motion <span>03</span></button>
+            <button type="button" aria-pressed="false" data-gallery-focus="reel">Reels <span>03</span></button>
+          </div>
+          <div class="coverflow-controls" aria-label="Gallery navigation">
+            <button type="button" aria-label="Previous gallery item" data-coverflow-previous>←</button>
+            <span data-coverflow-position>01 / 11</span>
+            <button type="button" aria-label="Next gallery item" data-coverflow-next>→</button>
+          </div>
+          <p aria-live="polite" data-gallery-readout>VIEW / ALL — 11 SELECTED PIECES</p>
+        </div>
+
         <!-- Artur: confirm the final public-facing titles and project context for source files DZ1–DZ5. -->
-        <div class="creative-grid" aria-label="Selected visual design and motion work" data-motion-group>
-          <figure class="creative-tile tile-image tile-large">
+        <div class="creative-grid" aria-label="Selected visual design and motion work" data-gallery-grid data-motion-group>
+          <figure class="creative-tile tile-image tile-large" data-gallery-kind="design">
             <button type="button" aria-label="Open Campaign Visual in the media viewer" data-viewer-item data-media-kind="image" data-media-ready="true" data-media-title="Campaign Visual" data-media-category="Campaign Design" data-media-src="assets/images/design-work-01.webp" data-media-alt="Purple holiday announcement design with a rabbit mascot" data-media-width="1600" data-media-height="796">
               <span class="tile-index">01</span><span class="tile-open">View ↗</span>
             </button><figcaption><strong>Campaign Visual</strong><code>design-work-01.webp</code></figcaption>
           </figure>
-          <figure class="creative-tile tile-video tile-tall tile-ai">
+          <figure class="creative-tile tile-video tile-tall tile-ai" data-gallery-kind="ai">
             <button type="button" aria-label="Open AI-Generated Video 01 in the media viewer" data-viewer-item data-media-kind="video" data-media-ready="true" data-media-title="AI-Generated Video 01" data-media-category="Created from scratch with AI" data-media-src="assets/videos/ai-video-01.mp4" data-media-poster="assets/images/ai-video-01-poster.webp" data-media-alt="AI-generated vertical video by Artur Silveira" data-media-note="Created entirely from scratch using AI tools, from concept and generation to final editing." data-media-width="720" data-media-height="1294">
               <span class="video-mark" aria-hidden="true">Play</span><span class="tile-index">02</span><span class="ai-label">100% AI-made</span>
             </button><figcaption><strong>AI-Generated Video</strong><span class="tile-note">Concept · generation · editing</span></figcaption>
           </figure>
-          <figure class="creative-tile tile-image tile-wide">
+          <figure class="creative-tile tile-image tile-wide" data-gallery-kind="design">
             <button type="button" aria-label="Open Product Advertisement in the media viewer" data-viewer-item data-media-kind="image" data-media-ready="true" data-media-title="Product Advertisement" data-media-category="Promotional Design" data-media-src="assets/images/design-work-02.webp" data-media-alt="Orange product advertisement featuring headphones and gaming accessories" data-media-width="1600" data-media-height="530">
               <span class="tile-index">03</span><span class="tile-open">View ↗</span>
             </button><figcaption><strong>Product Advertisement</strong><code>design-work-02.webp</code></figcaption>
           </figure>
-          <figure class="creative-tile tile-image tile-small">
+          <figure class="creative-tile tile-image tile-small" data-gallery-kind="design">
             <button type="button" aria-label="Open E-commerce Creative in the media viewer" data-viewer-item data-media-kind="image" data-media-ready="true" data-media-title="E-commerce Creative" data-media-category="Product Advertisement" data-media-src="assets/images/design-work-03.webp" data-media-alt="Purple bicycle saddle product advertisement" data-media-width="1080" data-media-height="1080">
               <span class="tile-index">04</span><span class="tile-open">View ↗</span>
             </button><figcaption><strong>E-commerce Creative</strong><code>design-work-03.webp</code></figcaption>
           </figure>
-          <figure class="creative-tile tile-video tile-medium tile-ai">
+          <figure class="creative-tile tile-video tile-medium tile-ai" data-gallery-kind="ai">
             <button type="button" aria-label="Open AI-Generated Video 02 in the media viewer" data-viewer-item data-media-kind="video" data-media-ready="true" data-media-title="AI-Generated Video 02" data-media-category="Created from scratch with AI" data-media-src="assets/videos/ai-video-02.mp4" data-media-poster="assets/images/ai-video-02-poster.webp" data-media-alt="AI-generated vertical video by Artur Silveira" data-media-note="Created entirely from scratch using AI tools, from concept and generation to final editing." data-media-width="720" data-media-height="1280">
               <span class="video-mark" aria-hidden="true">Play</span><span class="tile-index">05</span><span class="ai-label">100% AI-made</span>
             </button><figcaption><strong>AI-Generated Video</strong><span class="tile-note">Concept · generation · editing</span></figcaption>
           </figure>
-          <figure class="creative-tile tile-image tile-tall-video">
+          <figure class="creative-tile tile-image tile-tall-video" data-gallery-kind="design">
             <button type="button" aria-label="Open Social Media Creative in the media viewer" data-viewer-item data-media-kind="image" data-media-ready="true" data-media-title="Social Media Creative" data-media-category="Social Media Design" data-media-src="assets/images/design-work-04.webp" data-media-alt="Red Father's Day bicycle promotion" data-media-width="1069" data-media-height="1267">
               <span class="tile-index">06</span><span class="tile-open">View ↗</span>
             </button><figcaption><strong>Social Media Creative</strong><code>design-work-04.webp</code></figcaption>
           </figure>
-          <figure class="creative-tile tile-video tile-wide-image tile-ai">
+          <figure class="creative-tile tile-video tile-wide-image tile-ai" data-gallery-kind="ai">
             <button type="button" aria-label="Open AI-Generated Video 03 in the media viewer" data-viewer-item data-media-kind="video" data-media-ready="true" data-media-title="AI-Generated Video 03" data-media-category="Created from scratch with AI" data-media-src="assets/videos/ai-video-03.mp4" data-media-poster="assets/images/ai-video-03-poster.webp" data-media-alt="AI-generated vertical video by Artur Silveira" data-media-note="Created entirely from scratch using AI tools, from concept and generation to final editing." data-media-width="720" data-media-height="1280">
               <span class="video-mark" aria-hidden="true">Play</span><span class="tile-index">07</span><span class="ai-label">100% AI-made</span>
             </button><figcaption><strong>AI-Generated Video</strong><span class="tile-note">Concept · generation · editing</span></figcaption>
           </figure>
-          <figure class="creative-tile tile-image tile-detail">
+          <figure class="creative-tile tile-image tile-detail" data-gallery-kind="design">
             <button type="button" aria-label="Open Promotional Design in the media viewer" data-viewer-item data-media-kind="image" data-media-ready="true" data-media-title="Promotional Design" data-media-category="E-commerce Creative" data-media-src="assets/images/design-work-05.webp" data-media-alt="Red and white cycling jersey advertisement" data-media-width="1080" data-media-height="1080">
               <span class="tile-index">08</span><span class="tile-open">View ↗</span>
             </button><figcaption><strong>Promotional Design</strong><code>design-work-05.webp</code></figcaption>
           </figure>
-          <figure class="creative-tile tile-video tile-footer-video">
+          <figure class="creative-tile tile-video tile-footer-video" data-gallery-kind="reel">
             <button type="button" aria-label="Open Edited Reel 01 in the media viewer" data-viewer-item data-media-kind="video" data-media-ready="true" data-media-title="Edited Reel 01" data-media-category="Video Editing" data-media-src="assets/videos/reel-01.mp4" data-media-poster="assets/images/reel-01-poster.webp" data-media-alt="Edited vertical social media reel by Artur Silveira" data-media-width="720" data-media-height="1280">
               <span class="video-mark" aria-hidden="true">Play</span><span class="tile-index">09</span>
             </button><figcaption><strong>Video Editing</strong><code>reel-01.mp4</code></figcaption>
           </figure>
-          <figure class="creative-tile tile-video tile-reel-two">
+          <figure class="creative-tile tile-video tile-reel-two" data-gallery-kind="reel">
             <button type="button" aria-label="Open Edited Reel 02 in the media viewer" data-viewer-item data-media-kind="video" data-media-ready="true" data-media-title="Edited Reel 02" data-media-category="Promotional Reel" data-media-src="assets/videos/reel-02.mp4" data-media-poster="assets/images/reel-02-poster.webp" data-media-alt="Edited vertical promotional reel by Artur Silveira" data-media-width="720" data-media-height="1280">
               <span class="video-mark" aria-hidden="true">Play</span><span class="tile-index">10</span>
             </button><figcaption><strong>Promotional Reel</strong><code>reel-02.mp4</code></figcaption>
           </figure>
-          <figure class="creative-tile tile-video tile-reel-three">
+          <figure class="creative-tile tile-video tile-reel-three" data-gallery-kind="reel">
             <button type="button" aria-label="Open Edited Reel 03 in the media viewer" data-viewer-item data-media-kind="video" data-media-ready="true" data-media-title="Edited Reel 03" data-media-category="Social Media Reel" data-media-src="assets/videos/reel-03.mp4" data-media-poster="assets/images/reel-03-poster.webp" data-media-alt="Edited vertical social media reel by Artur Silveira" data-media-width="720" data-media-height="1280">
               <span class="video-mark" aria-hidden="true">Play</span><span class="tile-index">11</span>
             </button><figcaption><strong>Social Media Reel</strong><code>reel-03.mp4</code></figcaption>
           </figure>
         </div>
-        <p class="gallery-note">Open any item to view the full, uncropped work at its original proportions.</p>
+        <p class="gallery-note">Drag, swipe or use the arrow controls to explore. Open the centered item to view the full, uncropped work at its original proportions.</p>
       </div>
     </section>
 
@@ -436,7 +473,7 @@
 
         <div class="method" data-motion-group>
           <p class="method-label" data-scramble>How I move through a problem</p>
-          <div class="method-constellation" aria-hidden="true" data-method-constellation>
+          <div class="method-constellation" aria-hidden="true" data-method-constellation data-method-active="0">
             <svg viewBox="0 0 540 150" role="presentation">
               <path data-method-path d="M18 98C86 24 158 130 236 58S389 112 520 30"></path>
               <path data-method-path d="M18 116C104 72 167 119 256 91S409 41 520 82"></path>
@@ -445,13 +482,13 @@
               <circle data-method-dot cx="390" cy="76" r="5"></circle>
               <circle data-method-dot cx="520" cy="30" r="5"></circle>
             </svg>
-            <span>THINK / TEST / BUILD / LEARN</span>
+            <span><i data-method-index>METHOD / 01</i><strong data-method-word>UNDERSTAND</strong></span>
           </div>
           <ol class="method-list">
-            <li><span>01</span><div><h3>Understand</h3><p>Clarify user needs, business goals, technical constraints and existing problems.</p></div><i aria-hidden="true"></i></li>
-            <li><span>02</span><div><h3>Explore</h3><p>Use sketches, visual studies, code-assisted prototypes and AI workflows to test directions quickly.</p></div><i aria-hidden="true"></i></li>
-            <li><span>03</span><div><h3>Build</h3><p>Translate the selected direction into responsive interfaces and production-ready implementation.</p></div><i aria-hidden="true"></i></li>
-            <li><span>04</span><div><h3>Validate</h3><p>Collect feedback, test important flows and iterate based on real usage and business outcomes.</p></div><i aria-hidden="true"></i></li>
+            <li data-method-step="understand"><span>01</span><div><h3>Understand</h3><p>Clarify user needs, business goals, technical constraints and existing problems.</p></div><i aria-hidden="true"></i></li>
+            <li data-method-step="explore"><span>02</span><div><h3>Explore</h3><p>Use sketches, visual studies, code-assisted prototypes and AI workflows to test directions quickly.</p></div><i aria-hidden="true"></i></li>
+            <li data-method-step="build"><span>03</span><div><h3>Build</h3><p>Translate the selected direction into responsive interfaces and production-ready implementation.</p></div><i aria-hidden="true"></i></li>
+            <li data-method-step="validate"><span>04</span><div><h3>Validate</h3><p>Collect feedback, test important flows and iterate based on real usage and business outcomes.</p></div><i aria-hidden="true"></i></li>
           </ol>
         </div>
       </div>
@@ -468,17 +505,18 @@
         <div class="experience-tools-layout">
           <div class="experience-timeline" data-timeline data-motion-group>
             <span class="timeline-draw" aria-hidden="true" data-timeline-line></span>
-            <article>
+            <p class="experience-readout" aria-hidden="true"><span data-experience-index>ROLE / 01</span><strong data-experience-word>RODOCICLO</strong></p>
+            <article data-experience-step="0" data-experience-tool="0" data-experience-word="RODOCICLO">
               <span class="timeline-node" aria-hidden="true"></span>
               <div class="timeline-entry-meta"><time>May 2025 — Present</time><span>01</span></div>
               <div><h3>Rodociclo Bikeshop</h3><p>Product, Web &amp; Visual Designer · Social Media Manager</p></div>
             </article>
-            <article>
+            <article data-experience-step="1" data-experience-tool="0" data-experience-word="BIKE TECH">
               <span class="timeline-node" aria-hidden="true"></span>
               <div class="timeline-entry-meta"><time>June 2025 — Present</time><span>02</span></div>
               <div><h3>Bike Tech Moinhos</h3><p>Product, Web &amp; Visual Designer · Social Media Manager</p></div>
             </article>
-            <article>
+            <article data-experience-step="2" data-experience-tool="2" data-experience-word="WAVE">
               <span class="timeline-node" aria-hidden="true"></span>
               <div class="timeline-entry-meta"><time>2025 — Present</time><span>03</span></div>
               <div><h3>Wave Marketing</h3><p>Visual Designer · Video Editor</p></div>
@@ -522,14 +560,19 @@
           <p class="section-index" data-section-number>06 / 07</p>
           <h2 id="credentials-title" data-split-reveal>Education<br>&amp; language</h2>
           <p>Formal foundations and the languages I work in.</p>
+          <div class="credentials-signal" aria-hidden="true">
+            <span data-credential-index>SELECT / 01</span>
+            <strong data-credential-word>PROGRAMMING</strong>
+            <i data-credential-copy>Technical foundation</i>
+          </div>
         </div>
         <div class="education-list" data-motion-group>
-          <article><span>2025</span><div><h3>Technical High School Program in Programming</h3><p>SENAC Distrito Criativo · Completed in 2025</p></div></article>
-          <article><span>2023</span><div><h3>Python Certification</h3><p>SENAC Tech · Completed in 2023</p></div></article>
+          <article data-credential-word="PROGRAMMING" data-credential-copy="Technical foundation"><span>2025</span><div><h3>Technical High School Program in Programming</h3><p>SENAC Distrito Criativo · Completed in 2025</p></div></article>
+          <article data-credential-word="PYTHON" data-credential-copy="Certified practice"><span>2023</span><div><h3>Python Certification</h3><p>SENAC Tech · Completed in 2023</p></div></article>
         </div>
         <div class="language-list" data-motion-group>
-          <article><span>PT</span><div><h3>Portuguese</h3><p>Native</p></div></article>
-          <article><span>EN</span><div><h3>English</h3><p>C2 · Fluent</p></div></article>
+          <article data-credential-word="PORTUGUÊS" data-credential-copy="Native language"><span>PT</span><div><h3>Portuguese</h3><p>Native</p></div></article>
+          <article data-credential-word="ENGLISH" data-credential-copy="C2 · Fluent"><span>EN</span><div><h3>English</h3><p>C2 · Fluent</p></div></article>
         </div>
       </div>
     </section>
@@ -549,6 +592,7 @@
             <a class="button button-primary" href="mailto:arturmethod@gmail.com"><span>Send an email</span><span aria-hidden="true">↗</span></a>
             <a class="button button-quiet" href="assets/resume/Artur_Silveira_Resume.pdf" download="Artur_Silveira_Resume.pdf"><span>Download résumé</span><span aria-hidden="true">↓</span></a>
           </div>
+          <p class="contact-instruction" aria-hidden="true">MOVE / CLICK THE FIELD TO SHIFT THE SIGNAL</p>
           <svg class="contact-signature" viewBox="0 0 360 90" aria-hidden="true">
             <path d="M9 61c49-48 89-55 122-21 25 26 51 25 82-4 31-29 72-27 136 11"></path>
           </svg>

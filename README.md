@@ -55,20 +55,30 @@ The animation system in `script.js` is organized into:
 - a short non-blocking page curtain, layered hero entrance and geometric line drawing;
 - a transform-only spatial SVG field with independent pointer-reactive layers, paused outside the hero;
 - a 36-cell proximity matrix that reacts only on fine-pointer desktops and remains static or hidden on smaller devices;
-- one short, viewport-triggered character scramble system and a single off-screen-paused text morph;
+- one short, viewport-triggered character scramble system and two off-screen-paused, width-anchored text morphs;
 - semantic word reveals with temporary clip paths that never crop the final typography;
-- hand-drawn SVG accent strokes instead of full-width decorative underlines;
-- section rails, numbers, directional entrances and grouped gallery drift;
+- a one-shot per-letter variable-weight wave with reserved character widths, so the interactive phrase never jitters, reflows or continuously tracks the pointer;
+- clean color contrast on editorial emphasis without decorative title underlines;
+- a seven-scene navigation spine that follows the active section without taking over normal scrolling;
+- a fixed, pointer-reactive SVG line field and restrained monochrome/red side waves behind the full page;
+- a full-page 2D kinetic field that changes its typography and geometry with each section, renders at a capped 30 fps and low device-pixel ratio, and uses red only as an interaction signal;
+- an accessible coverflow gallery with drag, swipe, arrow-key and previous/next navigation, plus category-specific loops;
 - distinct shutters, masks, media scaling and parallax sequences for each project;
 - animated process states, timeline drawing, toolkit, credentials and contact sequences;
+- pointer-following border glow on selected information panels, with a static fallback on touch devices;
 - enhanced case-study and full-ratio media-viewer transitions;
 - restrained desktop-only depth, pointer spotlight and magnetic feedback for primary controls;
+- the native system pointer with no animated cursor proxy or trailing label, keeping direct manipulation immediate even while 3D surfaces and backgrounds remain responsive;
 - a line-style section spine, scroll-expanded before/after stage, specular control highlights and one-shot press feedback;
 - a scroll-driven kinetic type belt, vector process constellation, discipline word morph and layered contact wave field;
 - a protected experience timeline whose markers occupy a dedicated rail and whose content reveals vertically without crossing it;
 - cleanup through `revert()` and listener removal when motion preferences change or the page is left.
 
 The expanded motion language still uses only the self-hosted GSAP runtime already in the repository. React, WebGL and additional animation runtimes are intentionally unnecessary for these effects, keeping the portfolio directly deployable as static files.
+
+The coverflow, reactive-line field, morphing text, dynamic weight, gradient-wave treatment, scroll-expanded comparison and border glow are lightweight, original implementations inspired by the interaction categories in the supplied Originkit and ReactBits references. Their component libraries are not bundled or called at runtime. This keeps the authored behavior consistent with the portfolio, avoids framework duplication and preserves the static Netlify architecture.
+
+The gallery intentionally does not autoplay. The centered piece is the only item that opens directly; selecting a side piece rotates it into focus first. On touch devices, a horizontal drag rotates the selection while vertical movement remains normal page scrolling. Filter controls collapse the loop to Design, AI motion or Reels without removing the underlying accessible media metadata.
 
 Navigation state, theme changes, disclosures and media-viewer behavior remain independent of ScrollTrigger.
 
@@ -84,7 +94,7 @@ The page respects `prefers-reduced-motion`. When reduction is requested:
 - smooth scrolling is disabled;
 - content remains in its final readable position.
 
-Mobile layouts use shorter entrances, simplified shutters and no parallax or pointer depth. Pointer response runs only on hover-capable fine pointers. Decorative motion pauses while the browser tab is hidden, and `will-change` is applied only during relevant pointer interactions.
+Mobile layouts use shorter entrances, simplified shutters and no parallax or pointer depth. The full-page canvas field is disabled below 821 px, on coarse pointers and when reduced motion is requested. Pointer response runs only on hover-capable fine pointers. Decorative motion pauses while the browser tab is hidden, and `will-change` is applied only during relevant pointer interactions.
 
 All content is visible without JavaScript. The mobile navigation expands in the document flow and both case studies remain open when JavaScript is unavailable.
 
