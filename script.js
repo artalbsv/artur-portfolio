@@ -373,7 +373,7 @@
     sceneEcho.className = 'kinetic-scene-echo';
     sceneEcho.setAttribute('aria-hidden', 'true');
     sceneEcho.setAttribute('data-kinetic-echo', '');
-    sceneEcho.innerHTML = '<span data-kinetic-echo-index>01 / 07</span><strong data-kinetic-echo-word>BUILD</strong><i>ARTUR / MOTION SYSTEM</i>';
+    sceneEcho.innerHTML = '<span data-kinetic-echo-index>01 / 08</span><strong data-kinetic-echo-word>BUILD</strong><i>ARTUR / MOTION SYSTEM</i>';
     document.body.append(sceneEcho);
 
     const sceneSurge = document.createElement('div');
@@ -406,7 +406,7 @@
       const cue = document.createElement('span');
       cue.className = 'motion-scroll-cue';
       cue.setAttribute('aria-hidden', 'true');
-      cue.innerHTML = '<i></i><span>Scroll to explore / 01—07</span>';
+      cue.innerHTML = '<i></i><span>Scroll to explore / 01—08</span>';
       hero.append(cue);
     }
 
@@ -449,13 +449,14 @@
     if (!canvas || !context) return () => {};
 
     const scenes = {
-      top: { index: '01 / 07', short: '01', word: 'BUILD', amplitude: 1, frequency: 1 },
-      work: { index: '02 / 07', short: '02', word: 'COMMERCE', amplitude: 1.34, frequency: 0.82 },
-      'visual-work': { index: '03 / 07', short: '03', word: 'MOTION', amplitude: 1.62, frequency: 1.24 },
-      about: { index: '04 / 07', short: '04', word: 'METHOD', amplitude: 0.86, frequency: 1.48 },
-      experience: { index: '05 / 07', short: '05', word: 'SYSTEMS', amplitude: 1.12, frequency: 0.68 },
-      credentials: { index: '06 / 07', short: '06', word: 'LEARN', amplitude: 0.74, frequency: 1.68 },
-      contact: { index: '07 / 07', short: '07', word: 'TOGETHER', amplitude: 1.42, frequency: 0.96 }
+      top: { index: '01 / 08', short: '01', word: 'BUILD', amplitude: 1, frequency: 1 },
+      work: { index: '02 / 08', short: '02', word: 'COMMERCE', amplitude: 1.34, frequency: 0.82 },
+      'visual-work': { index: '03 / 08', short: '03', word: 'MOTION', amplitude: 1.62, frequency: 1.24 },
+      about: { index: '04 / 08', short: '04', word: 'METHOD', amplitude: 0.86, frequency: 1.48 },
+      experience: { index: '05 / 08', short: '05', word: 'SYSTEMS', amplitude: 1.12, frequency: 0.68 },
+      credentials: { index: '06 / 08', short: '06', word: 'LEARN', amplitude: 0.74, frequency: 1.68 },
+      lab: { index: '07 / 08', short: '07', word: 'EXPERIMENT', amplitude: 1.76, frequency: 1.34 },
+      contact: { index: '08 / 08', short: '08', word: 'TOGETHER', amplitude: 1.42, frequency: 0.96 }
     };
 
     let width = 1;
