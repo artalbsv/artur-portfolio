@@ -1,4 +1,4 @@
-# Artur Silveira — Portfolio
+# Artur Albuquerque — Portfolio
 
 An editorial, performance-conscious one-page portfolio for Artur Silveira de Albuquerque, Product & Visual Designer in Porto Alegre, Brazil. The site uses semantic HTML, a two-theme CSS system, vanilla JavaScript, and GSAP with ScrollTrigger for its primary motion language.
 
@@ -62,7 +62,7 @@ The animation system in `script.js` is organized into:
 - an eight-scene navigation spine that follows the active section without taking over normal scrolling;
 - a fixed, pointer-reactive SVG line field and restrained monochrome/red side waves behind the full page;
 - a full-page 2D kinetic field that changes its typography and geometry with each section, renders at a capped 30 fps and low device-pixel ratio, and uses red only as an interaction signal;
-- an on-demand Creative Lab with six clickable Canvas, motion, CSS 3D, parallax, WebGL and generative-type experiments, plus modal focus management and reduced-motion behavior;
+- an on-demand Creative Lab with seven advanced studies: a particle flow field, a Lorenz strange attractor, a high-resolution Gray–Scott simulation, a fully orbitable raymarched shader sculpture, kinetic typography, a route-particle network and a CSS 3D spatial ribbon, plus modal focus management and reduced-motion behavior;
 - an accessible coverflow gallery with drag, swipe, arrow-key and previous/next navigation, plus category-specific loops;
 - distinct shutters, masks, media scaling and parallax sequences for each project;
 - animated process states, timeline drawing, toolkit, credentials and contact sequences;

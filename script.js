@@ -1240,6 +1240,7 @@
     let dragStartX = 0;
     let dragStartY = 0;
     let dragPointer = null;
+    let dragCaptured = false;
     let dragShift = 0;
     let suppressCoverClick = false;
 
@@ -1330,19 +1331,24 @@
     });
     listen(galleryGrid, 'click', (event) => {
       const tile = event.target.closest('[data-gallery-kind]');
-      if (!tile || tile.classList.contains('cover-current')) {
-        if (suppressCoverClick) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
+      if (!tile) return;
+      if (suppressCoverClick) {
+        event.preventDefault();
+        event.stopPropagation();
         return;
       }
       const nextIndex = filteredTiles.indexOf(tile);
       if (nextIndex < 0) return;
+      if (nextIndex !== coverIndex) {
+        coverIndex = nextIndex;
+        renderCoverflow();
+      }
+
+      const trigger = $('[data-viewer-item]', tile);
+      if (!trigger) return;
       event.preventDefault();
       event.stopPropagation();
-      coverIndex = nextIndex;
-      renderCoverflow();
+      document.dispatchEvent(new CustomEvent('portfolio:open-media', { detail: { trigger } }));
     }, true);
     listen(galleryGrid, 'pointerdown', (event) => {
       if (event.button !== 0) return;
@@ -1350,25 +1356,31 @@
       dragStartX = event.clientX;
       dragStartY = event.clientY;
       dragShift = 0;
-      galleryGrid.classList.add('is-dragging');
-      galleryGrid.setPointerCapture?.(event.pointerId);
+      dragCaptured = false;
     });
     listen(galleryGrid, 'pointermove', (event) => {
       if (dragPointer !== event.pointerId) return;
       dragShift = event.clientX - dragStartX;
+      if (Math.abs(dragShift) > 10 && !dragCaptured) {
+        galleryGrid.setPointerCapture?.(event.pointerId);
+        dragCaptured = galleryGrid.hasPointerCapture?.(event.pointerId) || false;
+        galleryGrid.classList.add('is-dragging');
+      }
       if (Math.abs(dragShift) > 4) galleryGrid.style.setProperty('--drag-shift', `${Math.max(-90, Math.min(90, dragShift * 0.34))}px`);
     }, { passive: true });
     const finishCoverDrag = (event) => {
       if (dragPointer === null || (event.pointerId != null && event.pointerId !== dragPointer)) return;
       const deltaX = event.clientX == null ? dragShift : event.clientX - dragStartX;
       const deltaY = event.clientY == null ? 0 : event.clientY - dragStartY;
-      galleryGrid.releasePointerCapture?.(dragPointer);
+      if (dragCaptured && galleryGrid.hasPointerCapture?.(dragPointer)) galleryGrid.releasePointerCapture(dragPointer);
       dragPointer = null;
+      dragCaptured = false;
       galleryGrid.classList.remove('is-dragging');
       galleryGrid.style.setProperty('--drag-shift', '0px');
-      if (Math.abs(deltaX) > 42 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      const horizontalGesture = Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY);
+      if (horizontalGesture) {
         suppressCoverClick = true;
-        moveCoverflow(deltaX < 0 ? 1 : -1);
+        if (Math.abs(deltaX) > 42) moveCoverflow(deltaX < 0 ? 1 : -1);
         setTimeout(() => { suppressCoverClick = false; }, 0);
       }
     };
@@ -1715,8 +1727,14 @@
     const note = $('[data-viewer-note]');
     const path = $('[data-viewer-path]');
     const closeButton = $('.viewer-close', viewer);
+    const viewerNavigation = $('[data-viewer-navigation]', viewer);
+    const previousButton = $('[data-viewer-previous]', viewer);
+    const nextButton = $('[data-viewer-next]', viewer);
+    const viewerPosition = $('[data-viewer-position]', viewer);
     const inertSurfaces = [$('header.site-header'), $('main'), $('footer.site-footer')].filter(Boolean);
     let returnFocus = null;
+    let viewerItems = [];
+    let viewerIndex = 0;
 
     const focusableElements = () => $$('button:not([disabled]), a[href], video[controls], [tabindex]:not([tabindex="-1"])', viewer)
       .filter((element) => !element.hidden && element.offsetParent !== null);
@@ -1746,7 +1764,23 @@
       return placeholder;
     };
 
-    const openViewer = (trigger) => {
+    const galleryViewerItems = (trigger) => {
+      const gallery = trigger.closest('[data-gallery-grid]');
+      if (!gallery) return [trigger];
+      const activeFilter = $('[data-gallery-focus][aria-pressed="true"]')?.dataset.galleryFocus || 'all';
+      return $$('[data-viewer-item][data-media-ready="true"]', gallery).filter((item) => {
+        const tile = item.closest('[data-gallery-kind]');
+        return activeFilter === 'all' || tile?.dataset.galleryKind === activeFilter;
+      });
+    };
+
+    const updateViewerNavigation = () => {
+      const hasSequence = viewerItems.length > 1;
+      if (viewerNavigation) viewerNavigation.hidden = !hasSequence;
+      if (viewerPosition) viewerPosition.textContent = `${String(viewerIndex + 1).padStart(2, '0')} / ${String(Math.max(viewerItems.length, 1)).padStart(2, '0')}`;
+    };
+
+    const renderViewerItem = (trigger) => {
       const mediaKind = trigger.dataset.mediaKind || 'image';
       const mediaReady = trigger.dataset.mediaReady === 'true';
       const mediaTitle = trigger.dataset.mediaTitle || 'Selected media';
@@ -1757,7 +1791,6 @@
       const mediaWidth = Number.parseInt(trigger.dataset.mediaWidth || '', 10);
       const mediaHeight = Number.parseInt(trigger.dataset.mediaHeight || '', 10);
 
-      returnFocus = trigger;
       clearStage();
       if (title) title.textContent = mediaTitle;
       if (category) category.textContent = mediaCategory;
@@ -1798,6 +1831,38 @@
         if (description) description.textContent = 'A polished placeholder is shown until Artur adds the final media.';
       }
 
+      updateViewerNavigation();
+    };
+
+    const showViewerItem = (nextIndex, { animate = true, direction = 1 } = {}) => {
+      if (!viewerItems.length) return;
+      viewerIndex = (nextIndex + viewerItems.length) % viewerItems.length;
+      renderViewerItem(viewerItems[viewerIndex]);
+      const media = $('.viewer-stage > *', viewer);
+      if (animate && media && canAnimate()) {
+        window.gsap.fromTo(media, { autoAlpha: 0, x: direction * 18, scale: 0.985 }, {
+          autoAlpha: 1,
+          x: 0,
+          scale: 1,
+          duration: 0.3,
+          ease: 'power3.out',
+          overwrite: true
+        });
+      }
+    };
+
+    const moveViewer = (direction, animate = true) => {
+      if (viewerItems.length < 2) return;
+      showViewerItem(viewerIndex + direction, { animate, direction });
+    };
+
+    const openViewer = (trigger) => {
+      if (!trigger?.matches?.('[data-viewer-item]')) return;
+      returnFocus = trigger;
+      viewerItems = galleryViewerItems(trigger);
+      viewerIndex = Math.max(0, viewerItems.indexOf(trigger));
+      renderViewerItem(trigger);
+
       viewer.hidden = false;
       document.body.classList.add('media-open');
       inertSurfaces.forEach((surface) => { surface.inert = true; });
@@ -1826,6 +1891,8 @@
         clearStage();
         returnFocus?.focus();
         returnFocus = null;
+        viewerItems = [];
+        viewerIndex = 0;
       };
 
       if (canAnimate()) {
@@ -1838,10 +1905,23 @@
     };
 
     $$('[data-viewer-item]').forEach((trigger) => trigger.addEventListener('click', () => openViewer(trigger)));
+    document.addEventListener('portfolio:open-media', (event) => openViewer(event.detail?.trigger));
     $$('[data-viewer-close]', viewer).forEach((control) => control.addEventListener('click', closeViewer));
+    previousButton?.addEventListener('click', (event) => moveViewer(-1, event.detail > 0));
+    nextButton?.addEventListener('click', (event) => moveViewer(1, event.detail > 0));
 
     viewer.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') return;
+      if (!event.target.closest('video') && event.key === 'ArrowLeft') {
+        event.preventDefault();
+        moveViewer(-1, false);
+        return;
+      }
+      if (!event.target.closest('video') && event.key === 'ArrowRight') {
+        event.preventDefault();
+        moveViewer(1, false);
+        return;
+      }
       if (event.key !== 'Tab') return;
       const focusable = focusableElements();
       if (!focusable.length) return;
