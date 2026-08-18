@@ -1,0 +1,21 @@
+{
+  "name": "artur-working-proof",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --configLoader runner",
+    "build": "vite build --configLoader runner && node scripts/copy-static.mjs",
+    "preview": "vite preview --host 127.0.0.1 --configLoader runner"
+  },
+  "dependencies": {
+    "@gsap/react": "^2.1.2",
+    "gsap": "^3.13.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "three": "^0.179.1"
+  },
+  "devDependencies": {
+    "vite": "^7.1.2"
+  }
+}

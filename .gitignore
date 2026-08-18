@@ -9,3 +9,8 @@ Thumbs.db
 # Local server and audit output
 *.log
 .lighthouseci/
+
+# Working Proof build output
+node_modules/
+dist/
+.vite/

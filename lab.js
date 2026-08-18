@@ -15,7 +15,16 @@
   const instruction = $('[data-lab-instruction]', viewer);
   const tech = $('[data-lab-tech]', viewer);
   const closeButton = $('.lab-viewer-close', viewer);
-  const inertSurfaces = [$('header.site-header'), $('main'), $('footer.site-footer'), $('[data-media-viewer]')].filter(Boolean);
+  // The React route renders the Lab dialog beside the section, inside <main>.
+  // Inert only the dialog's siblings so the background is disabled without
+  // disabling the dialog itself.
+  const main = $('main');
+  const inertSurfaces = [
+    $('header.site-header'),
+    ...Array.from(main?.children || []).filter((surface) => surface !== viewer),
+    $('footer.site-footer'),
+    $('[data-media-viewer]')
+  ].filter(Boolean);
   let returnFocus = null;
   let cleanupExperiment = () => {};
 
