@@ -10,7 +10,7 @@ The visual system is near-monochrome. Red is reserved for active states and inte
 
 The homepage is a compact five-act world rather than a long case-study stack:
 
-- `/` — identity, a four-state Project Stage, the Capability System, Lab portal and contact
+- `/` — identity, a five-state Project Stage, the Capability System, Lab portal and contact
 - `/work/rodociclo/` — full Rodociclo transformation and project notes
 - `/work/bike-tech-moinhos/` — full Bike Tech transformation and project notes
 - `/lab/` — seven live creative-coding systems
@@ -66,7 +66,7 @@ On this Windows workspace, `--configLoader runner` avoids an unrelated malformed
 
 - The full model is documented in `docs/experience-architecture.md`, `docs/interaction-capability-map.md`, `docs/shared-elements-map.md` and `docs/motion-physics.md`.
 - The homepage uses five acts and approximately six physical desktop viewports. Detailed project evidence stays on the dedicated routes.
-- The Project Stage is a finite sticky environment. Native scroll, direct selection, arrow keys and touch swipe move through Rodociclo, Bike Tech, Visual & Motion and Experiments without wheel hijacking.
+- The Project Stage is a finite sticky environment. Native scroll, direct selection, arrow keys and touch swipe move through Rodociclo, Bike Tech, SAVA Brasil, Visual & Motion and Experiments without wheel hijacking.
 - Persistent media planes change geometry between states. Desktop proof becomes a mobile device, fragments into the real media archive and resolves into a procedural Lab signal.
 - The Capability System replaces separate profile, experience, education, language and skill sections with four contextual modes: Design, Code, Motion and AI.
 - GSAP owns event choreography and ScrollTrigger thresholds; CSS owns state geometry and micro-feedback; Three.js is reserved for the directly manipulated hero surface.
@@ -94,6 +94,8 @@ C:\Users\User\Desktop\Portfolio
 | `Bike Tech Moinhos\HomepageAntigaBTM.png` | `assets/images/biketech-before.webp` |
 | `Bike Tech Moinhos\HomepageNovaBTM.png` | `assets/images/biketech-after.webp` |
 | `Bike Tech Moinhos\BTMobile.jpeg` | `assets/images/biketech-mobile.webp` |
+| Provided SAVA desktop homepage capture | `assets/images/sava-home-desktop.webp` |
+| Provided SAVA mobile homepage capture | `assets/images/sava-home-mobile.webp` |
 | `Designs\DZ1.png` … `DZ5.png` | `assets/images/design-work-01.webp` … `05.webp` |
 | `Designs\nitropaylogo.png` | `assets/images/nitropay-logo.webp` |
 | `Designs\nitrocutlogo.png` | `assets/images/nitrocut-logo.webp` |
@@ -101,6 +103,8 @@ C:\Users\User\Desktop\Portfolio
 | `Vídeos\Reel1.mp4` … `Reel3.mp4` | `assets/videos/reel-01.mp4` … `03.mp4` plus posters |
 
 NitroPay and NitroCut are presented as identity/logo-design work with contain-based artwork treatment and no invented brand mockups. AI1–AI3 are visibly identified as created entirely from scratch using AI tools, from concept and generation to final editing. Reels are described only as edited work; no campaign claims are invented.
+
+SAVA Brasil is presented as a Brazilian catalogue project for a Chinese bicycle company. The stage and full-ratio viewer use the supplied desktop and mobile homepage captures, and provide a direct link to the live catalogue. Its project copy intentionally makes no quantitative sales claim.
 
 ## Replace media
 
@@ -118,6 +122,7 @@ Replace `assets/resume/Artur_Silveira_Resume.pdf` without changing the filename,
 - Detailed research, feedback and rollout evidence for both commerce projects.
 - Current Rodociclo sales context and wording.
 - Bike Tech quantitative outcomes, if and when verified.
+- SAVA public launch date, detailed commercial context and any quantitative sales outcome.
 - Final experience titles, dates, education details, English level and availability wording.
 - Final résumé and production canonical URL.
 

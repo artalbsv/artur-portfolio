@@ -14,7 +14,8 @@ const PROJECT_STATES = [
     statement: 'An established storefront rebuilt as one responsive commerce system.',
     meta: ['May 2025 — Present', 'Tray / Twig / JavaScript'],
     href: '/work/rodociclo/',
-    transition: 'rodociclo'
+    transition: 'rodociclo',
+    chrome: 'rodociclo.com.br'
   },
   {
     id: 'bike',
@@ -24,26 +25,39 @@ const PROJECT_STATES = [
     statement: 'A premium catalogue reorganized around discovery, clarity and continuity.',
     meta: ['June 2025 — Present', 'Desktop / Mobile / Commerce'],
     href: '/work/bike-tech-moinhos/',
-    transition: 'bike'
+    transition: 'bike',
+    chrome: 'biketechmoinhos.com.br'
+  },
+  {
+    id: 'sava',
+    number: '03',
+    discipline: 'International catalogue / Localisation',
+    title: 'SAVA Brasil',
+    statement: 'A Chinese bicycle brand entering Brazil: I designed the local catalogue, then improved product discovery and presentation—contributing to increased sales.',
+    meta: ['China → Brazil', '7 models / Portuguese catalogue'],
+    chrome: 'sava-brasil-catalogo.sava-brasil.workers.dev',
+    website: 'https://sava-brasil-catalogo.sava-brasil.workers.dev/'
   },
   {
     id: 'visual',
-    number: '03',
+    number: '04',
     discipline: 'Visual / Motion / AI',
     title: 'Selected visual work',
     statement: 'A directed selection of identity, campaign, product and moving-image work.',
     meta: ['13 selected pieces', 'Identity / Image / Motion'],
-    href: '#stage-visual-media'
+    href: '#stage-visual-media',
+    chrome: 'selected-direction.artur'
   },
   {
     id: 'lab',
-    number: '04',
+    number: '05',
     discipline: 'Creative code / Direct input',
     title: 'Interactive systems',
     statement: 'Seven live studies where code becomes material, behavior and interface.',
     meta: ['7 live systems', 'Canvas / WebGL / Type'],
     href: '/lab/',
-    transition: 'lab'
+    transition: 'lab',
+    chrome: 'interactive-systems.artur'
   }
 ];
 
@@ -61,6 +75,27 @@ const CURATED_VISUAL_MEDIA = [
   mediaItems[8],
   mediaItems[9],
   mediaItems[10]
+];
+
+const SAVA_MEDIA = [
+  {
+    type: 'image',
+    title: 'SAVA Brasil — catalogue homepage',
+    category: 'Brazilian catalogue / Desktop',
+    src: '/assets/images/sava-home-desktop.webp',
+    alt: 'SAVA Brasil desktop catalogue homepage',
+    width: 1600,
+    height: 795
+  },
+  {
+    type: 'image',
+    title: 'SAVA Brasil — catalogue homepage on mobile',
+    category: 'Brazilian catalogue / Mobile',
+    src: '/assets/images/sava-home-mobile.webp',
+    alt: 'SAVA Brasil mobile catalogue homepage',
+    width: 774,
+    height: 1600
+  }
 ];
 
 const projectItems = (project) => [
@@ -205,6 +240,11 @@ export function ProjectStage({ openMedia }) {
   const [visualSelected, setVisualSelected] = useState(0);
   const state = PROJECT_STATES[active];
   const selectedVisual = CURATED_VISUAL_MEDIA[visualSelected];
+  const isRodociclo = state.id === 'rodociclo';
+  const isBike = state.id === 'bike';
+  const isSava = state.id === 'sava';
+  const isVisual = state.id === 'visual';
+  const isLab = state.id === 'lab';
 
   const selectStage = useCallback((index, source = 'scroll') => {
     const next = Math.max(0, Math.min(PROJECT_STATES.length - 1, index));
@@ -260,12 +300,13 @@ export function ProjectStage({ openMedia }) {
   }, { scope: viewport, dependencies: [active] });
 
   const inspectPrimary = (surface = 'desktop') => {
-    if (active < 2) {
-      const items = projectItems(projects[active]);
+    if (isRodociclo || isBike) {
+      const items = projectItems(isRodociclo ? projects[0] : projects[1]);
       openMedia(items[0], items);
       return;
     }
-    if (active === 2) openMedia(selectedVisual, CURATED_VISUAL_MEDIA);
+    if (isSava) openMedia(SAVA_MEDIA[surface === 'device' ? 1 : 0], SAVA_MEDIA);
+    if (isVisual) openMedia(selectedVisual, CURATED_VISUAL_MEDIA);
   };
 
   const handleKey = (event) => {
@@ -303,7 +344,7 @@ export function ProjectStage({ openMedia }) {
         <header className="world-stage__header">
           <p className="chapter-mark">02 / Selected proof</p>
           <p>Scroll, select or use arrow keys</p>
-          <output aria-live="polite">{state.number} / 04</output>
+          <output aria-live="polite">{state.number} / {String(PROJECT_STATES.length).padStart(2, '0')}</output>
         </header>
 
         <nav className="world-stage__index" aria-label="Selected work states">
@@ -313,27 +354,29 @@ export function ProjectStage({ openMedia }) {
         <div className="world-stage__media" aria-label={`${state.title} visual preview`}>
           <div className="world-stage__media-layout">
             <div className="stage-plane stage-plane--browser">
-              <span className="stage-plane__chrome"><i /><b>{active === 1 ? 'biketechmoinhos.com.br' : active === 2 ? 'selected-direction.artur' : 'rodociclo.com.br'}</b><i /></span>
-              <button type="button" onClick={() => inspectPrimary('desktop')} disabled={active === 3} aria-label={active < 2 ? `Open ${state.title} media` : 'Open selected visual media'}>
-                <StagePicture src={projects[0].image} alt="Rodociclo homepage after the redesign" width={projects[0].imageSize[0]} height={projects[0].imageSize[1]} active={active === 0} />
-                <StagePicture src={projects[1].image} alt="Bike Tech Moinhos homepage after the redesign" width={projects[1].imageSize[0]} height={projects[1].imageSize[1]} active={active === 1} />
-                <StagePicture src={mediaItems[0].src} alt={mediaItems[0].alt} width={mediaItems[0].width} height={mediaItems[0].height} active={active === 2} />
+              <span className="stage-plane__chrome"><i /><b>{state.chrome}</b><i /></span>
+              <button type="button" onClick={() => inspectPrimary('desktop')} disabled={isLab} aria-label={isVisual ? 'Open selected visual media' : `Open ${state.title} media`}>
+                <StagePicture src={projects[0].image} alt="Rodociclo homepage after the redesign" width={projects[0].imageSize[0]} height={projects[0].imageSize[1]} active={isRodociclo} />
+                <StagePicture src={projects[1].image} alt="Bike Tech Moinhos homepage after the redesign" width={projects[1].imageSize[0]} height={projects[1].imageSize[1]} active={isBike} />
+                <StagePicture src={mediaItems[0].src} alt={mediaItems[0].alt} width={mediaItems[0].width} height={mediaItems[0].height} active={isVisual} />
+                <StagePicture src={SAVA_MEDIA[0].src} alt={SAVA_MEDIA[0].alt} width={SAVA_MEDIA[0].width} height={SAVA_MEDIA[0].height} active={isSava} />
               </button>
             </div>
 
             <div className="stage-plane stage-plane--device">
               <span className="stage-plane__speaker" />
-              <button type="button" onClick={() => inspectPrimary('device')} disabled={active === 3} aria-label={active < 2 ? `Open ${state.title} mobile media` : `Open ${selectedVisual.title}`}>
-                <StagePicture src={projects[0].mobile} alt="Rodociclo mobile e-commerce interface" width={projects[0].mobileSize[0]} height={projects[0].mobileSize[1]} active={active === 0} />
-                <StagePicture src={projects[1].mobile} alt="Bike Tech Moinhos mobile e-commerce interface" width={projects[1].mobileSize[0]} height={projects[1].mobileSize[1]} active={active === 1} />
-                <StagePicture src={mediaItems[1].poster} alt="AI-generated video preview" width={mediaItems[1].width} height={mediaItems[1].height} active={active === 2} />
+              <button type="button" onClick={() => inspectPrimary('device')} disabled={isLab} aria-label={isVisual ? `Open ${selectedVisual.title}` : `Open ${state.title} mobile media`}>
+                <StagePicture src={projects[0].mobile} alt="Rodociclo mobile e-commerce interface" width={projects[0].mobileSize[0]} height={projects[0].mobileSize[1]} active={isRodociclo} />
+                <StagePicture src={projects[1].mobile} alt="Bike Tech Moinhos mobile e-commerce interface" width={projects[1].mobileSize[0]} height={projects[1].mobileSize[1]} active={isBike} />
+                <StagePicture src={mediaItems[1].poster} alt="AI-generated video preview" width={mediaItems[1].width} height={mediaItems[1].height} active={isVisual} />
+                <StagePicture src={SAVA_MEDIA[1].src} alt={SAVA_MEDIA[1].alt} width={SAVA_MEDIA[1].width} height={SAVA_MEDIA[1].height} active={isSava} />
               </button>
               <span className="stage-plane__home" />
             </div>
 
-            <VisualCollection active={active === 2} selected={visualSelected} setSelected={setVisualSelected} openMedia={openMedia} />
+            <VisualCollection active={isVisual} selected={visualSelected} setSelected={setVisualSelected} openMedia={openMedia} />
 
-            <div className="stage-signal" aria-hidden={active !== 3}><ProofCanvas /><span><i /> Direct input</span></div>
+            <div className="stage-signal" aria-hidden={!isLab}><ProofCanvas /><span><i /> Direct input</span></div>
           </div>
         </div>
 
@@ -345,12 +388,12 @@ export function ProjectStage({ openMedia }) {
           </div>
           <div className="world-stage__active-meta">
             {state.meta.map((item) => <small key={item}>{item}</small>)}
-            {active === 2 ? <button type="button" onClick={() => openMedia(selectedVisual, CURATED_VISUAL_MEDIA)}>Open selected work full ratio <span aria-hidden="true">↗</span></button> : <a href={state.href} data-page-transition={state.transition || undefined} data-transition-label={state.title}>{active === 3 ? 'Enter the Lab' : 'Open case study'} <span aria-hidden="true">↗</span></a>}
+            {isVisual ? <button type="button" onClick={() => openMedia(selectedVisual, CURATED_VISUAL_MEDIA)}>Open selected work full ratio <span aria-hidden="true">↗</span></button> : isSava ? <a href={state.website} target="_blank" rel="noreferrer">Visit live catalogue <span aria-hidden="true">↗</span></a> : <a href={state.href} data-page-transition={state.transition || undefined} data-transition-label={state.title}>{isLab ? 'Enter the Lab' : 'Open case study'} <span aria-hidden="true">↗</span></a>}
           </div>
         </div>
 
         <div className="world-stage__progress" aria-hidden="true"><i style={{ transform: `scaleX(${(active + 1) / PROJECT_STATES.length})` }} /></div>
-        <noscript><p><a href="/work/rodociclo/">Rodociclo Bikeshop</a> · <a href="/work/bike-tech-moinhos/">Bike Tech Moinhos</a> · <a href="/lab/">Interactive Lab</a></p></noscript>
+        <noscript><p><a href="/work/rodociclo/">Rodociclo Bikeshop</a> · <a href="/work/bike-tech-moinhos/">Bike Tech Moinhos</a> · SAVA Brasil — Brazilian catalogue project · <a href="/lab/">Interactive Lab</a></p></noscript>
       </div>
     </section>
   );
@@ -361,7 +404,7 @@ const CAPABILITIES = {
     kicker: 'Systems that clarify decisions',
     statement: 'Visual instinct shaped by product constraints.',
     tools: ['Product Design', 'UI Design', 'E-commerce Design', 'Responsive Web Design'],
-    evidence: [['Rodociclo', 'Product / Web / Visual · 2025—Now'], ['Bike Tech Moinhos', 'Product / Web / Visual · 2025—Now']],
+    evidence: [['Rodociclo', 'Product / Web / Visual · 2025—Now'], ['Bike Tech Moinhos', 'Product / Web / Visual · 2025—Now'], ['SAVA Brasil', 'International catalogue / Product / Web / Visual']],
     environment: 'Product'
   },
   Code: {
